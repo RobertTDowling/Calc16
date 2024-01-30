@@ -31,9 +31,16 @@ import androidx.compose.ui.unit.dp
 data class StackEntry(val entry: Double)
 class Stack() {
     val MAX_DEPTH = 10
-    var entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
-    val depth = mutableStateOf(0)
-    var pad = mutableStateOf("")
+    private var entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
+    private val depth = mutableStateOf(0)
+    private var pad = mutableStateOf("")
+    fun entry(depth: Int) : StackEntry {
+        if (hasDepth(depth)) {
+            return entries[depth]
+        }
+        throw IndexOutOfBoundsException()
+    }
+    fun padGet() : String { return pad.value }
     fun push(x: Double) {
         entries.add(0, StackEntry(x))
         depth.value = depth.value + 1
@@ -107,10 +114,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PreviewStack() {
     val stack = Stack()
-    stack.entries[0] = StackEntry(Math.PI)
-    stack.entries[1] = StackEntry(2.7182)
-    stack.entries[2] = StackEntry(1.414)
-    stack.depth.value = 3
+    stack.push(Math.PI)
+    stack.push(2.7182)
+    stack.push(1.414)
     ShowStack(stack)
 }
 
@@ -136,8 +142,8 @@ fun ShowStack(stack: Stack) {
              StackSpacer()
          }
          for (ei in stack.MAX_DEPTH downTo 0) {
-             if (ei<stack.depth.value) {
-                 ShowStackEntry(entry = stack.entries[ei])
+             if (stack.hasDepth(ei+1)) {
+                 ShowStackEntry(entry = stack.entry(ei))
              } else if (ei==0 && stack.padIsEmpty()) {
                  ShowStackString("Stack Empty")
              } else {
@@ -149,7 +155,7 @@ fun ShowStack(stack: Stack) {
          }
          if (!stack.padIsEmpty()) {
              StackSpacer()
-             ShowStackPad(stack.pad.value)
+             ShowStackPad(stack.padGet())
          }
      }
 }
