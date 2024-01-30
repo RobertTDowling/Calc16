@@ -1,7 +1,6 @@
 package com.rtdti.calc16
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
@@ -28,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-data class StackEntry(val entry: Double)
+data class StackEntry(val value: Double)
 class Stack() {
     val MAX_DEPTH = 10
     private var entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
@@ -47,7 +46,7 @@ class Stack() {
     }
     fun pop(): Double {
         depth.value = depth.value - 1
-        return entries.removeAt(0).entry
+        return entries.removeAt(0).value
     }
     fun binop(op: (Double, Double) -> Double) {
         padEnter()
@@ -164,7 +163,7 @@ val stackEntryModifier = Modifier.padding(vertical = 2.dp, horizontal = 8.dp)
 
 @Composable
 fun ShowStackEntry(entry: StackEntry) {
-    ShowStackString(str = entry.entry.toString())
+    ShowStackString(str = entry.value.toString())
 }
 
 @Composable
