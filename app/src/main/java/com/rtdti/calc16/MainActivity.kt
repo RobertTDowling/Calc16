@@ -258,6 +258,25 @@ fun ButtonItem(
 }
 
 @Composable
+fun ModalFormatButtonItem(
+    @DrawableRes imageRes: Int,
+    newFormat: StackFormat,
+    stack: Stack
+) {
+    fun onClick() {
+        val oldFormat = stack.formatGet()
+        if (oldFormat == newFormat) { // Toggle
+            stack.formatSet(StackFormat.FLOAT)
+            // Stop highlighting this button
+        } else {
+            stack.formatSet(newFormat)
+            // Highlight this button
+        }
+    }
+    ButtonItem(imageRes, ::onClick)
+}
+
+@Composable
 fun KeyPad(stack: Stack) {
     Column {
         Row {
@@ -272,12 +291,12 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable.del, { stack.backspaceOrDrop() })
         }
         Row {
-            ButtonItem(R.drawable.prime, { stack.padAppend("d") })
-            ButtonItem(R.drawable.miximperial, { stack.padAppend("f") })
-            ButtonItem(R.drawable.improper, { stack.padAppend("f") })
-            ButtonItem(R.drawable.fix, { stack.formatSet(StackFormat.FLOAT) })
-            ButtonItem(R.drawable.sci, { stack.padAppend("b") })
-            ButtonItem(R.drawable.hex, { stack.formatSet(StackFormat.HEX) })
+            ModalFormatButtonItem(R.drawable.prime,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.miximperial,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.improper,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.fix, StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.sci,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.hex, StackFormat.HEX, stack)
         }
         Row {
             ButtonItem(R.drawable.floor, { stack.unop({a -> Math.floor(a)}) })
