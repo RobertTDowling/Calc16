@@ -287,7 +287,7 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable.d, { stack.padAppend("d") })
             ButtonItem(R.drawable.e, { stack.padAppend("e") })
             ButtonItem(R.drawable.f, { stack.padAppend("f") })
-            ButtonItem(R.drawable.not, { stack.unop({a -> 1.0-a}) })
+            ButtonItem(R.drawable.not, { stack.unop({a -> -1.0-a}) })
             ButtonItem(R.drawable.times2, { stack.unop({a -> a*2.0}) })
             ButtonItem(R.drawable.divide2, { stack.unop({a -> a/2.0}) })
         }
