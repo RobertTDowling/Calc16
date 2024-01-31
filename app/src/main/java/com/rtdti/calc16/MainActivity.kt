@@ -90,7 +90,7 @@ class Stack() {
     }
     fun backspaceOrDrop() { // Combo backspace and drop
         if (padIsEmpty()) {
-            if (isEmpty()) {
+            if (!isEmpty()) {
                 pop()
             }
         } else {
