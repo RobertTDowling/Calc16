@@ -76,15 +76,16 @@ class Stack() {
         return depth.value >= d
     }
     fun isEmpty(): Boolean { return !hasDepth(1)}
-    fun padAppend(str: String) {
-        pad.value = pad.value + str
-    }
-    fun padClear() {
-        pad.value = ""
-    }
-    fun padDelete() {
+
+    fun enterOrDup() { // Combo enter and dup
         if (!padIsEmpty()) {
-            pad.value = pad.value.substring(0, pad.value.length-1)
+            padEnter()
+        } else {
+            if (!isEmpty()) {
+                val a = pop();
+                push(a)
+                push(a)
+            }
         }
     }
     fun backspaceOrDrop() { // Combo backspace and drop
@@ -94,6 +95,18 @@ class Stack() {
             }
         } else {
             padDelete()
+        }
+    }
+
+    fun padAppend(str: String) {
+        pad.value = pad.value + str
+    }
+    fun padClear() {
+        pad.value = ""
+    }
+    fun padDelete() {
+        if (!padIsEmpty()) {
+            pad.value = pad.value.substring(0, pad.value.length-1)
         }
     }
     fun padIsEmpty(): Boolean {
@@ -311,15 +324,7 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable.blank, {})
         }
         Row {
-            ButtonItem(R.drawable.enter, {
-                if (!stack.padIsEmpty()) {
-                    stack.padEnter()
-                } else {
-                    if (!stack.isEmpty()) {
-                        val a = stack.pop();
-                        stack.push(a)
-                        stack.push(a)
-                    }}})
+            ButtonItem(R.drawable.enter, { stack.enterOrDup() })
             ButtonItem(R.drawable._0, { stack.padAppend("0")})
             ButtonItem(R.drawable.point, { stack.padAppend(".")})
             ButtonItem(R.drawable.plus, { stack.binop({a,b -> a+b}) })
