@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 
 data class StackEntry(val value: Double)
 class Stack() {
-    val MAX_DEPTH = 10
+    val MAX_DEPTH = 6
     private var entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
     private val depth = mutableStateOf(0)
     private var pad = mutableStateOf("")
@@ -47,6 +47,15 @@ class Stack() {
     fun pop(): Double {
         depth.value = depth.value - 1
         return entries.removeAt(0).value
+    }
+    fun swap() {
+        padEnter()
+        if (hasDepth(2)) {
+            val b = pop()
+            val a = pop()
+            push(b)
+            push(a)
+        }
     }
     fun binop(op: (Double, Double) -> Double) {
         padEnter()
@@ -76,6 +85,15 @@ class Stack() {
     fun padDelete() {
         if (!padIsEmpty()) {
             pad.value = pad.value.substring(0, pad.value.length-1)
+        }
+    }
+    fun backspaceOrDrop() { // Combo backspace and drop
+        if (padIsEmpty()) {
+            if (isEmpty()) {
+                pop()
+            }
+        } else {
+            padDelete()
         }
     }
     fun padIsEmpty(): Boolean {
@@ -210,19 +228,71 @@ fun ButtonItem(
 fun KeyPad(stack: Stack) {
     Column {
         Row {
+
+        }
+        Row {
+            ButtonItem(R.drawable.undo, { stack.padAppend("f") })
+            ButtonItem(R.drawable.blank, { stack.padAppend("d") })
+            ButtonItem(R.drawable.epsilon, { stack.padAppend("e") })
+            ButtonItem(R.drawable.todp, { stack.padAppend("e") })
+            ButtonItem(R.drawable.blank, { stack.padAppend("d") })
+            ButtonItem(R.drawable.del, { stack.backspaceOrDrop() })
+        }
+        Row {
+            ButtonItem(R.drawable.prime, { stack.padAppend("d") })
+            ButtonItem(R.drawable.miximperial, { stack.padAppend("f") })
+            ButtonItem(R.drawable.improper, { stack.padAppend("f") })
+            ButtonItem(R.drawable.fix, { stack.padAppend("a") })
+            ButtonItem(R.drawable.sci, { stack.padAppend("b") })
+            ButtonItem(R.drawable.hex, { stack.padAppend("e") })
+        }
+        Row {
+            ButtonItem(R.drawable.floor, { stack.unop({a -> Math.floor(a)}) })
+            ButtonItem(R.drawable.round, { stack.unop({a -> Math.round(a).toDouble() }) })
+            ButtonItem(R.drawable.ceil, { stack.unop({a -> Math.ceil(a)}) })
+            ButtonItem(R.drawable.gcd, { stack.padAppend("a") })
+            ButtonItem(R.drawable.lcm, { stack.padAppend("b") })
+            ButtonItem(R.drawable.pi, { stack.padEnter(); stack.push(Math.PI) })
+        }
+        Row {
+            ButtonItem(R.drawable.arcsin, { stack.unop({a -> Math.asin(a)}) })
+            ButtonItem(R.drawable.arccos, { stack.unop({a -> Math.acos(a)}) })
+            ButtonItem(R.drawable.arctan, { stack.unop({a -> Math.atan(a)}) })
+            ButtonItem(R.drawable.exp, { stack.unop({a -> Math.exp(a)}) })
+            ButtonItem(R.drawable._2tox, { stack.unop({a -> Math.pow(2.0,a)}) })
+            ButtonItem(R.drawable.todeg, { stack.unop({a -> 180*a/Math.PI}) })
+        }
+        Row {
+            ButtonItem(R.drawable.sin, { stack.unop({a -> Math.sin(a)}) })
+            ButtonItem(R.drawable.cos, { stack.unop({a -> Math.cos(a)}) })
+            ButtonItem(R.drawable.tan, { stack.unop({a -> Math.tan(a)}) })
+            ButtonItem(R.drawable.ln, { stack.unop({a -> Math.log(a)}) })
+            ButtonItem(R.drawable.log2, { stack.unop({a -> Math.log(a)/Math.log(2.0)}) })
+            ButtonItem(R.drawable.degto, { stack.unop({a -> Math.PI*a/180}) })
+        }
+        Row {
+            ButtonItem(R.drawable.d, { stack.padAppend("d") })
+            ButtonItem(R.drawable.e, { stack.padAppend("e") })
+            ButtonItem(R.drawable.f, { stack.padAppend("f") })
+            ButtonItem(R.drawable.not, { stack.unop({a -> 1.0-a}) })
+            ButtonItem(R.drawable.times2, { stack.unop({a -> a*2.0}) })
+            ButtonItem(R.drawable.divide2, { stack.unop({a -> a/2.0}) })
+        }
+        Row {
+            ButtonItem(R.drawable.a, { stack.padAppend("a") })
+            ButtonItem(R.drawable.b, { stack.padAppend("b") })
+            ButtonItem(R.drawable.c, { stack.padAppend("c") })
+            ButtonItem(R.drawable.and, { stack.binop({a,b -> a.toLong().and(b.toLong()).toDouble()}) })
+            ButtonItem(R.drawable.or, { stack.binop({a,b -> a.toLong().or(b.toLong()).toDouble()}) })
+            ButtonItem(R.drawable.xor, { stack.binop({a,b -> a.toLong().xor(b.toLong()).toDouble()}) })
+        }
+        Row {
             ButtonItem(R.drawable._7, { stack.padAppend("7")})
             ButtonItem(R.drawable._8, { stack.padAppend("8")})
             ButtonItem(R.drawable._9, { stack.padAppend("9")})
             ButtonItem(R.drawable.divide, { stack.binop({a,b -> a/b}) })
             ButtonItem(R.drawable.invx, { stack.unop({a -> 1.0/a}) })
-            ButtonItem(R.drawable.del, {
-                if (stack.padIsEmpty()) {
-                    if (!stack.isEmpty()) {
-                        stack.pop()
-                    }
-                } else {
-                    stack.padDelete()
-                }})
+            ButtonItem(R.drawable.mod, { stack.binop({a,b -> a%b}) })
         }
         Row {
             ButtonItem(R.drawable._4, { stack.padAppend("4")})
@@ -230,7 +300,7 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable._6, { stack.padAppend("6")})
             ButtonItem(R.drawable.times, { stack.binop({a,b -> a*b}) })
             ButtonItem(R.drawable.ytox, { stack.binop({a,b -> Math.pow(a,b)}) })
-            ButtonItem(R.drawable.todp, {})
+            ButtonItem(R.drawable.ee, { stack.binop({a,b -> a*Math.pow(10.0,b)})})
         }
         Row {
             ButtonItem(R.drawable._1, { stack.padAppend("1")})
@@ -238,10 +308,9 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable._3, { stack.padAppend("3")})
             ButtonItem(R.drawable.minus, { stack.binop({a,b -> a-b}) })
             ButtonItem(R.drawable.plusminus, {  stack.unop({a -> -a}) })
+            ButtonItem(R.drawable.blank, {})
         }
         Row {
-            ButtonItem(R.drawable._0, { stack.padAppend("0")})
-            ButtonItem(R.drawable.point, { stack.padAppend(".")})
             ButtonItem(R.drawable.enter, {
                 if (!stack.padIsEmpty()) {
                     stack.padEnter()
@@ -251,15 +320,11 @@ fun KeyPad(stack: Stack) {
                         stack.push(a)
                         stack.push(a)
                     }}})
+            ButtonItem(R.drawable._0, { stack.padAppend("0")})
+            ButtonItem(R.drawable.point, { stack.padAppend(".")})
             ButtonItem(R.drawable.plus, { stack.binop({a,b -> a+b}) })
-            ButtonItem(R.drawable.swap, {
-                stack.padEnter()
-                if (stack.hasDepth(2)) {
-                    val b = stack.pop()
-                    val a = stack.pop()
-                    stack.push(b)
-                    stack.push(a)
-                }})
+            ButtonItem(R.drawable.root, { stack.unop({a -> Math.sqrt(a)}) })
+            ButtonItem(R.drawable.swap, { stack.swap() })
         }
     }
 }
