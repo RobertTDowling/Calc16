@@ -26,13 +26,16 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlin.math.absoluteValue
 
 data class StackEntry(val value: Double)
+enum class StackFormat { FLOAT, HEX }
 class Stack() {
     val MAX_DEPTH = 6
-    private var entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
+    private val entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
     private val depth = mutableStateOf(0)
-    private var pad = mutableStateOf("")
+    private val pad = mutableStateOf("")
+    private val format = mutableStateOf(StackFormat.FLOAT)
     fun entry(depth: Int) : StackEntry {
         if (hasDepth(depth)) {
             return entries[depth]
@@ -40,6 +43,8 @@ class Stack() {
         throw IndexOutOfBoundsException()
     }
     fun padGet() : String { return pad.value }
+    fun formatGet() : StackFormat { return format.value }
+    fun formatSet(fmt: StackFormat) { format.value = fmt }
     fun push(x: Double) {
         entries.add(0, StackEntry(x))
         depth.value = depth.value + 1
@@ -166,6 +171,7 @@ fun StackSpacer() {
 
 @Composable
 fun ShowStack(stack: Stack) {
+    val format = stack.formatGet()
      Column {
          if (stack.padIsEmpty()) {
              ShowStackString("")
@@ -173,7 +179,7 @@ fun ShowStack(stack: Stack) {
          }
          for (ei in stack.MAX_DEPTH downTo 0) {
              if (stack.hasDepth(ei+1)) {
-                 ShowStackEntry(entry = stack.entry(ei))
+                 ShowStackEntry(entry = stack.entry(ei), format = format)
              } else if (ei==0 && stack.padIsEmpty()) {
                  ShowStackString("Stack Empty")
              } else {
@@ -193,8 +199,22 @@ fun ShowStack(stack: Stack) {
 val stackEntryModifier = Modifier.padding(vertical = 2.dp, horizontal = 8.dp)
 
 @Composable
-fun ShowStackEntry(entry: StackEntry) {
-    ShowStackString(str = entry.value.toString())
+fun ShowStackEntry(entry: StackEntry, format: StackFormat) {
+    fun withEpsilon(truncated: Double, without: String) : String {
+        val original = entry.value
+        val error = (original - truncated).absoluteValue
+        if (error > 1e-8) { // FIXME: Adjustable?
+            return String.format("%s + ϵ", without)
+        }
+        return without
+    }
+    when (format) {
+        StackFormat.FLOAT -> ShowStackString(str = entry.value.toString())
+        StackFormat.HEX -> {
+            val truncated = entry.value.toLong()
+            ShowStackString(withEpsilon(truncated.toDouble(), String.format("0x%x", truncated)))
+        }
+    }
 }
 
 @Composable
@@ -255,9 +275,9 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable.prime, { stack.padAppend("d") })
             ButtonItem(R.drawable.miximperial, { stack.padAppend("f") })
             ButtonItem(R.drawable.improper, { stack.padAppend("f") })
-            ButtonItem(R.drawable.fix, { stack.padAppend("a") })
+            ButtonItem(R.drawable.fix, { stack.formatSet(StackFormat.FLOAT) })
             ButtonItem(R.drawable.sci, { stack.padAppend("b") })
-            ButtonItem(R.drawable.hex, { stack.padAppend("e") })
+            ButtonItem(R.drawable.hex, { stack.formatSet(StackFormat.HEX) })
         }
         Row {
             ButtonItem(R.drawable.floor, { stack.unop({a -> Math.floor(a)}) })
