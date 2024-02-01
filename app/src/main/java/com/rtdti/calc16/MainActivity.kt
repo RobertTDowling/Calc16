@@ -212,7 +212,11 @@ class Stack() {
             // Do nothing?
         } else {
             val x = try {
-                pad.value.toDouble()
+                if (format.value == StackFormat.HEX) {
+                    pad.value.toLong(radix = 16).toDouble()
+                } else {
+                    pad.value.toDouble()
+                }
             } catch (e: Exception) {
                 0.0
             }
