@@ -83,19 +83,20 @@ object CalcMath {
     }
 
     fun double2imperial(x0: Double, epsilon: Double): Frac {
-        val x = Math.abs(x0)
+        val x = x0.absoluteValue
+        val sign = if (x0 < 0) -1 else 1
         val invEpsilon2 = Math.pow(2.0, Math.ceil(Math.log(1 / epsilon) / Math.log(2.0)))
         var n: Long = (x * invEpsilon2).roundToLong()
         var d: Long = invEpsilon2.roundToLong()
-        if (d < 0) d = -d
+        // if (d < 0) d = -d
         if (d < 1) {
             // avoid trouble with numbers we can't convert
-            return Frac(x.roundToLong(), 1L, x-x.roundToLong())
+            return Frac(x0.roundToLong(), 1L, x0-x0.roundToLong())
         }
         val g: Long = gcd(n, d)
         n /= g
         d /= g
         if (n == 0L) d = g // fix d=1
-        return Frac(n, d, x-n.toDouble()/d)
+        return Frac(sign * n, d, x-n.toDouble()/d)
     }
 }

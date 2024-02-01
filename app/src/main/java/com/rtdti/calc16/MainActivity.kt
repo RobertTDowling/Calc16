@@ -24,10 +24,8 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlin.math.absoluteValue
-import kotlin.math.roundToLong
 
 data class StackEntry(val value: Double)
 
@@ -35,6 +33,35 @@ interface StackFormatter {
     fun format(value: Double, epsilon: Double, dp: Int): String
     fun makeEString(error: Double, epsilon: Double): String {
         return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
+    }
+    fun formatFrac(f: Frac, epsilon: Double, improper: Boolean): String {
+        val eString = makeEString(f.err, epsilon * epsilon)
+        var n = f.num
+        var d = f.denom
+        if (d < 0) { // Force d positive
+            d = -d
+            n = -n
+        }
+        var sign = ""
+        if (n < 0) { // Force n positive
+            sign = "-"
+            n = -n
+        }
+        var w = 0L
+        if (!improper) {
+            w = n / d
+            n = n % d
+        }
+        if (n == 0L) {
+            d = 1L
+        }
+        if (d == 1L) {
+            return String.format("%s%d%s", sign, if (improper) n else w, eString)
+        }
+        if (w == 0L) {
+            return String.format("%s%d / %d%s", sign, n, d, eString)
+        }
+        return String.format("%s%d - %d / %d%s", sign, w, n, d, eString)
     }
 }
 
@@ -45,62 +72,25 @@ object StackFormatFloat : StackFormatter {
 }
 
 object StackFormatHex : StackFormatter {
-    fun asLongWithEpsilon(value: Double, epsilon: Double, format: (Long) -> String) : String {
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
         val truncated = value.toLong()
         val error = value - truncated
-        val eString = makeEString (error, epsilon*epsilon)
-        val without = format(truncated)
-        return String.format("%s%s", without, eString)
-    }
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
-        return asLongWithEpsilon(value, epsilon, { tr -> String.format("0x%x", tr) })
+        val eString = makeEString (error, epsilon * epsilon)
+        return String.format("0x%x%s", truncated, eString)
     }
 }
 
 object StackFormatImproper : StackFormatter {
     override fun format(value: Double, epsilon: Double, dp: Int): String {
         val f = CalcMath.double2frac(value, epsilon)
-        val eString = makeEString (f.err, epsilon*epsilon)
-        var n = f.num
-        var d = f.denom
-        if (d < 0) {
-            d = -d
-            n = -n
-        }
-        if (d == 1L) {
-            return String.format("%d%s", n, eString)
-        }
-        return String.format("%d / %d%s", n, d, eString)
+        return formatFrac(f, epsilon, true)
     }
 }
 
 object StackFormatterMixImperial : StackFormatter {
     override fun format(value: Double, epsilon: Double, dp: Int): String {
         val f = CalcMath.double2imperial(value, epsilon)
-        val eString = makeEString (f.err, epsilon*epsilon)
-        var n = f.num
-        var d = f.denom
-        if (d < 0) {
-            d = -d
-            n = -n
-        }
-        var sign = ""
-        if (n < 0) {
-            sign = "-"
-            n = -n
-        }
-        val w = n / d
-        n = n % d
-        if (n == 0L) {
-            d = 1
-        }
-        if (d == 1L) {
-            return String.format("%s%d%s", sign, w, eString)
-        }
-        if (w == 0L) {
-            return String.format("%s%d / %d%s", sign, n, d, eString)
-        }
-        return String.format("%s%d - %d / %d%s", sign, w, n, d, eString)
+        return formatFrac(f, epsilon, false)
     }
 }
 
