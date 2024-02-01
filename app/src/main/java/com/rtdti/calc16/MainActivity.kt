@@ -33,6 +33,9 @@ data class StackEntry(val value: Double)
 
 interface StackFormatter {
     fun format(value: Double, epsilon: Double, dp: Int): String
+    fun makeEString(error: Double, epsilon: Double): String {
+        return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
+    }
 }
 
 object StackFormatFloat : StackFormatter {
@@ -45,7 +48,7 @@ object StackFormatHex : StackFormatter {
     fun asLongWithEpsilon(value: Double, epsilon: Double, format: (Long) -> String) : String {
         val truncated = value.toLong()
         val error = value - truncated
-        val eString = if (error.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
+        val eString = makeEString (error, epsilon*epsilon)
         val without = format(truncated)
         return String.format("%s%s", without, eString)
     }
@@ -57,7 +60,7 @@ object StackFormatHex : StackFormatter {
 object StackFormatImproper : StackFormatter {
     override fun format(value: Double, epsilon: Double, dp: Int): String {
         val f = CalcMath.double2frac(value, epsilon)
-        val eString = if (f.err.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
+        val eString = makeEString (f.err, epsilon*epsilon)
         var n = f.num
         var d = f.denom
         if (d < 0) {
@@ -74,7 +77,7 @@ object StackFormatImproper : StackFormatter {
 object StackFormatterMixImperial : StackFormatter {
     override fun format(value: Double, epsilon: Double, dp: Int): String {
         val f = CalcMath.double2imperial(value, epsilon)
-        val eString = if (f.err.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
+        val eString = makeEString (f.err, epsilon*epsilon)
         var n = f.num
         var d = f.denom
         if (d < 0) {
