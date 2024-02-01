@@ -29,13 +29,130 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.absoluteValue
 
 data class StackEntry(val value: Double)
-enum class StackFormat { FLOAT, HEX }
+
+interface StackFormatter {
+    fun format(value: Double, epsilon: Double, dp: Double): String
+}
+
+object StackFormatFloat : StackFormatter {
+    override fun format(value: Double, epsilon: Double, dp: Double): String {
+        return value.toString()
+    }
+}
+
+object StackFormatHex : StackFormatter {
+    fun asLongWithEpsilon(value: Double, epsilon: Double, format: (Long) -> String) : String {
+        val truncated = value.toLong()
+        val error = value - truncated
+        val hasEpsilon = error.absoluteValue > epsilon
+        val without = format(truncated)
+        if (hasEpsilon) {
+            return String.format("%s + ϵ", without)
+        }
+        return without
+    }
+    override fun format(value: Double, epsilon: Double, dp: Double): String {
+        return asLongWithEpsilon(value, epsilon, { tr -> String.format("0x%x", tr) })
+    }
+}
+
+object StackFormatImproper : StackFormatter {
+    data class Frac(val num: Long, val denom: Long, val err: Double)
+    fun double2frac (startx: Double, epsilon: Double) : Frac {
+		// Taken from float_to_frac.c
+		//** find rational approximation to given real number
+		//** David Eppstein / UC Irvine / 8 Aug 1993
+		//**
+		//** With corrections from Arno Formella, May 2008
+
+		var x = startx
+		val maxden = 1/epsilon;
+
+		var m00 = 1L
+        var m11 = 1L
+        var m10 = 0L
+        var m01 = 0L
+
+        var loops = 0
+        var ai = x.toLong()
+
+	    // loop finding terms until denom gets too big
+		while (m10 * ai + m11 <= maxden && loops < 100) {
+			loops++;
+			val t1 = m00 * ai + m01;
+			m01 = m00;
+			m00 = t1;
+			val t2 = m10 * ai + m11;
+			m11 = m10;
+			m10 = t2;
+			if (x==ai.toDouble()) {
+                break     // AF: division by zero
+            }
+			x = 1/(x - ai.toDouble())
+			if (x>0x7FFFFFFF) {
+                break     // AF: representation failure
+            }
+            ai = x.toLong()
+		}
+	    /* now remaining x is between 0 and 1/ai */
+	    /* approx as either 0 or 1/m where m is max that will fit in maxden */
+	    /* first try zero */
+		val n1 = m00
+        val d1 = m10
+		val e1 = startx - m00.toDouble() / m10
+	    /* now try other possibility */
+		ai = ((maxden - m11) / m10).toLong();
+		m00 = m00 * ai + m01;
+		m10 = m10 * ai + m11;
+
+		val n2 = m00
+        val d2 = m10;
+		val e2 = startx - m00.toDouble() / m10
+
+		if (e1.absoluteValue < e2.absoluteValue) {
+			// Pick e1
+			return Frac(n1, d1, e1)
+		} else {
+			// Pick e2
+			return Frac(n2, d2, e2)
+		}
+	}
+
+    override fun format(value: Double, epsilon: Double, dp: Double): String {
+        val f = double2frac(value, epsilon)
+        val hasEpsilon = f.err.absoluteValue > epsilon*epsilon // FIXME
+        if (f.denom == 1L) {
+            if (hasEpsilon) {
+                return String.format("%d + ϵ", f.num)
+            }
+            return f.num.toString()
+        }
+        if (hasEpsilon) {
+            return String.format("%d / %d + ϵ", f.num, f.denom)
+        }
+        return String.format("%d / %d", f.num, f.denom)
+    }
+}
+
+enum class StackFormat { FLOAT, HEX, IMPROPER;
+    fun formatter() : StackFormatter {
+        return when (this) {
+            FLOAT -> StackFormatFloat
+            HEX -> StackFormatHex
+            IMPROPER -> StackFormatImproper
+        }
+    }
+}
+
 class Stack() {
     val MAX_DEPTH = 6
     private val entries = MutableList(MAX_DEPTH) { StackEntry(0.0) }
     private val depth = mutableStateOf(0)
     private val pad = mutableStateOf("")
     private val format = mutableStateOf(StackFormat.FLOAT)
+    private val epsilon = mutableStateOf(1e-4)
+    fun epsilonGet(): Double { return epsilon.value }
+    fun epsilonSet(e: Double) { epsilon.value = e }
     fun entry(depth: Int) : StackEntry {
         if (hasDepth(depth)) {
             return entries[depth]
@@ -45,6 +162,7 @@ class Stack() {
     fun padGet() : String { return pad.value }
     fun formatGet() : StackFormat { return format.value }
     fun formatSet(fmt: StackFormat) { format.value = fmt }
+    fun formatter(): StackFormatter { return format.value.formatter() }
     fun push(x: Double) {
         entries.add(0, StackEntry(x))
         depth.value = depth.value + 1
@@ -77,6 +195,14 @@ class Stack() {
             push(op(a))
         }
     }
+    fun pop1op(op: (Double) -> Unit) {
+        padEnter()
+        if (hasDepth(1)) {
+            val a = pop()
+            op(a)
+        }
+    }
+
     fun hasDepth(d: Int): Boolean {
         return depth.value >= d
     }
@@ -171,7 +297,7 @@ fun StackSpacer() {
 
 @Composable
 fun ShowStack(stack: Stack) {
-    val format = stack.formatGet()
+    val formatter = stack.formatter()
      Column {
          if (stack.padIsEmpty()) {
              ShowStackString("")
@@ -179,7 +305,7 @@ fun ShowStack(stack: Stack) {
          }
          for (ei in stack.MAX_DEPTH downTo 0) {
              if (stack.hasDepth(ei+1)) {
-                 ShowStackEntry(entry = stack.entry(ei), format = format)
+                 ShowStackString(formatter.format(stack.entry(ei).value, stack.epsilonGet(), 0.0))
              } else if (ei==0 && stack.padIsEmpty()) {
                  ShowStackString("Stack Empty")
              } else {
@@ -197,25 +323,6 @@ fun ShowStack(stack: Stack) {
 }
 
 val stackEntryModifier = Modifier.padding(vertical = 2.dp, horizontal = 8.dp)
-
-@Composable
-fun ShowStackEntry(entry: StackEntry, format: StackFormat) {
-    fun withEpsilon(truncated: Double, without: String) : String {
-        val original = entry.value
-        val error = (original - truncated).absoluteValue
-        if (error > 1e-8) { // FIXME: Adjustable?
-            return String.format("%s + ϵ", without)
-        }
-        return without
-    }
-    when (format) {
-        StackFormat.FLOAT -> ShowStackString(str = entry.value.toString())
-        StackFormat.HEX -> {
-            val truncated = entry.value.toLong()
-            ShowStackString(withEpsilon(truncated.toDouble(), String.format("0x%x", truncated)))
-        }
-    }
-}
 
 @Composable
 fun ShowStackString(str: String) {
@@ -285,7 +392,7 @@ fun KeyPad(stack: Stack) {
         Row {
             ButtonItem(R.drawable.undo, { stack.padAppend("f") })
             ButtonItem(R.drawable.blank, { stack.padAppend("d") })
-            ButtonItem(R.drawable.epsilon, { stack.padAppend("e") })
+            ButtonItem(R.drawable.epsilon, { stack.pop1op({e -> stack.epsilonSet(e)}) })
             ButtonItem(R.drawable.todp, { stack.padAppend("e") })
             ButtonItem(R.drawable.blank, { stack.padAppend("d") })
             ButtonItem(R.drawable.del, { stack.backspaceOrDrop() })
@@ -293,7 +400,7 @@ fun KeyPad(stack: Stack) {
         Row {
             ModalFormatButtonItem(R.drawable.prime,  StackFormat.FLOAT, stack)
             ModalFormatButtonItem(R.drawable.miximperial,  StackFormat.FLOAT, stack)
-            ModalFormatButtonItem(R.drawable.improper,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.improper,  StackFormat.IMPROPER, stack)
             ModalFormatButtonItem(R.drawable.fix, StackFormat.FLOAT, stack)
             ModalFormatButtonItem(R.drawable.sci,  StackFormat.FLOAT, stack)
             ModalFormatButtonItem(R.drawable.hex, StackFormat.HEX, stack)
