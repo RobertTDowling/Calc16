@@ -54,71 +54,9 @@ object StackFormatHex : StackFormatter {
     }
 }
 
-data class Frac(val num: Long, val denom: Long, val err: Double)
-
 object StackFormatImproper : StackFormatter {
-    fun double2frac (startx: Double, epsilon: Double) : Frac {
-		// Taken from float_to_frac.c
-		//** find rational approximation to given real number
-		//** David Eppstein / UC Irvine / 8 Aug 1993
-		//**
-		//** With corrections from Arno Formella, May 2008
-
-		var x = startx
-		val maxden = 1/epsilon;
-
-		var m00 = 1L
-        var m11 = 1L
-        var m10 = 0L
-        var m01 = 0L
-
-        var loops = 0
-        var ai = x.toLong()
-
-	    // loop finding terms until denom gets too big
-		while (m10 * ai + m11 <= maxden && loops < 100) {
-			loops++;
-			val t1 = m00 * ai + m01;
-			m01 = m00;
-			m00 = t1;
-			val t2 = m10 * ai + m11;
-			m11 = m10;
-			m10 = t2;
-			if (x==ai.toDouble()) {
-                break     // AF: division by zero
-            }
-			x = 1/(x - ai.toDouble())
-			if (x>0x7FFFFFFF) {
-                break     // AF: representation failure
-            }
-            ai = x.toLong()
-		}
-	    /* now remaining x is between 0 and 1/ai */
-	    /* approx as either 0 or 1/m where m is max that will fit in maxden */
-	    /* first try zero */
-		val n1 = m00
-        val d1 = m10
-		val e1 = startx - m00.toDouble() / m10
-	    /* now try other possibility */
-		ai = ((maxden - m11) / m10).toLong();
-		m00 = m00 * ai + m01;
-		m10 = m10 * ai + m11;
-
-		val n2 = m00
-        val d2 = m10;
-		val e2 = startx - m00.toDouble() / m10
-
-		if (e1.absoluteValue < e2.absoluteValue) {
-			// Pick e1
-			return Frac(n1, d1, e1)
-		} else {
-			// Pick e2
-			return Frac(n2, d2, e2)
-		}
-	}
-
     override fun format(value: Double, epsilon: Double, dp: Int): String {
-        val f = double2frac(value, epsilon)
+        val f = CalcMath.double2frac(value, epsilon)
         val eString = if (f.err.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
         var n = f.num
         var d = f.denom
@@ -134,39 +72,8 @@ object StackFormatImproper : StackFormatter {
 }
 
 object StackFormatterMixImperial : StackFormatter {
-    fun gcd(a: Long, b: Long) : Long {
-        var a=a
-        var b=b
-        while (a>0 && b>0) {
-            if (a < b) {
-                a = b.also({ b = a })
-            }
-            a %= b
-        }
-        return if (b < 1) 1L else b
-    }
-    fun lcm(a: Long, b: Long) : Long {
-        return a*b/gcd(a,b)
-    }
-    fun double2frac(x0: Double, epsilon: Double): Frac {
-        val x = Math.abs(x0)
-        val invEpsilon2 = Math.pow(2.0, Math.ceil(Math.log(1 / epsilon) / Math.log(2.0)))
-        var n: Long = (x * invEpsilon2).roundToLong()
-        var d: Long = invEpsilon2.roundToLong()
-        if (d < 0) d = -d
-        if (d < 1) {
-            // avoid trouble with numbers we can't convert
-            return Frac(x.roundToLong(), 1L, x-x.roundToLong())
-        }
-        val g: Long = gcd(n, d)
-        n /= g
-        d /= g
-        if (n == 0L) d = g // fix d=1
-        return Frac(n, d, x-n.toDouble()/d)
-    }
-
     override fun format(value: Double, epsilon: Double, dp: Int): String {
-        val f = double2frac(value, epsilon)
+        val f = CalcMath.double2imperial(value, epsilon)
         val eString = if (f.err.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
         var n = f.num
         var d = f.denom
@@ -335,16 +242,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewStack() {
-    val stack = Stack()
-    stack.push(Math.PI)
-    stack.push(2.7182)
-    stack.push(1.414)
-    ShowStack(stack)
-}
-
 @Composable
 fun StackSpacer() {
     Spacer(
@@ -473,8 +370,8 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable.floor, { stack.unop({a -> Math.floor(a)}) })
             ButtonItem(R.drawable.round, { stack.unop({a -> Math.round(a).toDouble() }) })
             ButtonItem(R.drawable.ceil, { stack.unop({a -> Math.ceil(a)}) })
-            ButtonItem(R.drawable.gcd, { stack.padAppend("a") })
-            ButtonItem(R.drawable.lcm, { stack.padAppend("b") })
+            ButtonItem(R.drawable.gcd, { stack.binop({a,b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) })
+            ButtonItem(R.drawable.lcm, { stack.binop({a,b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) })
             ButtonItem(R.drawable.pi, { stack.padEnter(); stack.push(Math.PI) })
         }
         Row {
