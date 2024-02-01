@@ -27,15 +27,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlin.math.absoluteValue
+import kotlin.math.roundToLong
 
 data class StackEntry(val value: Double)
 
 interface StackFormatter {
-    fun format(value: Double, epsilon: Double, dp: Double): String
+    fun format(value: Double, epsilon: Double, dp: Int): String
 }
 
 object StackFormatFloat : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Double): String {
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
         return value.toString()
     }
 }
@@ -44,20 +45,18 @@ object StackFormatHex : StackFormatter {
     fun asLongWithEpsilon(value: Double, epsilon: Double, format: (Long) -> String) : String {
         val truncated = value.toLong()
         val error = value - truncated
-        val hasEpsilon = error.absoluteValue > epsilon
+        val eString = if (error.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
         val without = format(truncated)
-        if (hasEpsilon) {
-            return String.format("%s + ϵ", without)
-        }
-        return without
+        return String.format("%s%s", without, eString)
     }
-    override fun format(value: Double, epsilon: Double, dp: Double): String {
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
         return asLongWithEpsilon(value, epsilon, { tr -> String.format("0x%x", tr) })
     }
 }
 
+data class Frac(val num: Long, val denom: Long, val err: Double)
+
 object StackFormatImproper : StackFormatter {
-    data class Frac(val num: Long, val denom: Long, val err: Double)
     fun double2frac (startx: Double, epsilon: Double) : Frac {
 		// Taken from float_to_frac.c
 		//** find rational approximation to given real number
@@ -118,28 +117,90 @@ object StackFormatImproper : StackFormatter {
 		}
 	}
 
-    override fun format(value: Double, epsilon: Double, dp: Double): String {
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
         val f = double2frac(value, epsilon)
-        val hasEpsilon = f.err.absoluteValue > epsilon*epsilon // FIXME
-        if (f.denom == 1L) {
-            if (hasEpsilon) {
-                return String.format("%d + ϵ", f.num)
-            }
-            return f.num.toString()
+        val eString = if (f.err.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
+        var n = f.num
+        var d = f.denom
+        if (d < 0) {
+            d = -d
+            n = -n
         }
-        if (hasEpsilon) {
-            return String.format("%d / %d + ϵ", f.num, f.denom)
+        if (d == 1L) {
+            return String.format("%d%s", n, eString)
         }
-        return String.format("%d / %d", f.num, f.denom)
+        return String.format("%d / %d%s", n, d, eString)
     }
 }
 
-enum class StackFormat { FLOAT, HEX, IMPROPER;
+object StackFormatterMixImperial : StackFormatter {
+    fun gcd(a: Long, b: Long) : Long {
+        var a=a
+        var b=b
+        while (a>0 && b>0) {
+            if (a < b) {
+                a = b.also({ b = a })
+            }
+            a %= b
+        }
+        return if (b < 1) 1L else b
+    }
+    fun lcm(a: Long, b: Long) : Long {
+        return a*b/gcd(a,b)
+    }
+    fun double2frac(x0: Double, epsilon: Double): Frac {
+        val x = Math.abs(x0)
+        val invEpsilon2 = Math.pow(2.0, Math.ceil(Math.log(1 / epsilon) / Math.log(2.0)))
+        var n: Long = (x * invEpsilon2).roundToLong()
+        var d: Long = invEpsilon2.roundToLong()
+        if (d < 0) d = -d
+        if (d < 1) {
+            // avoid trouble with numbers we can't convert
+            return Frac(x.roundToLong(), 1L, x-x.roundToLong())
+        }
+        val g: Long = gcd(n, d)
+        n /= g
+        d /= g
+        if (n == 0L) d = g // fix d=1
+        return Frac(n, d, x-n.toDouble()/d)
+    }
+
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
+        val f = double2frac(value, epsilon)
+        val eString = if (f.err.absoluteValue > epsilon*epsilon) { " + ϵ" } else { "" } // FIXME
+        var n = f.num
+        var d = f.denom
+        if (d < 0) {
+            d = -d
+            n = -n
+        }
+        var sign = ""
+        if (n < 0) {
+            sign = "-"
+            n = -n
+        }
+        val w = n / d
+        n = n % d
+        if (n == 0L) {
+            d = 1
+        }
+        if (d == 1L) {
+            return String.format("%s%d%s", sign, w, eString)
+        }
+        if (w == 0L) {
+            return String.format("%s%d / %d%s", sign, n, d, eString)
+        }
+        return String.format("%s%d - %d / %d%s", sign, w, n, d, eString)
+    }
+}
+
+enum class StackFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL;
     fun formatter() : StackFormatter {
         return when (this) {
             FLOAT -> StackFormatFloat
             HEX -> StackFormatHex
             IMPROPER -> StackFormatImproper
+            MIXIMPERIAL -> StackFormatterMixImperial
         }
     }
 }
@@ -151,6 +212,9 @@ class Stack() {
     private val pad = mutableStateOf("")
     private val format = mutableStateOf(StackFormat.FLOAT)
     private val epsilon = mutableStateOf(1e-4)
+    private val dp = mutableStateOf(2)
+    fun dpGet(): Int { return dp.value }
+    fun dpSet(d: Int) { dp.value = d }
     fun epsilonGet(): Double { return epsilon.value }
     fun epsilonSet(e: Double) { epsilon.value = e }
     fun entry(depth: Int) : StackEntry {
@@ -305,7 +369,7 @@ fun ShowStack(stack: Stack) {
          }
          for (ei in stack.MAX_DEPTH downTo 0) {
              if (stack.hasDepth(ei+1)) {
-                 ShowStackString(formatter.format(stack.entry(ei).value, stack.epsilonGet(), 0.0))
+                 ShowStackString(formatter.format(stack.entry(ei).value, stack.epsilonGet(), stack.dpGet()))
              } else if (ei==0 && stack.padIsEmpty()) {
                  ShowStackString("Stack Empty")
              } else {
@@ -391,15 +455,15 @@ fun KeyPad(stack: Stack) {
         }
         Row {
             ButtonItem(R.drawable.undo, { stack.padAppend("f") })
-            ButtonItem(R.drawable.blank, { stack.padAppend("d") })
+            ButtonItem(R.drawable.blank, { stack.push(stack.epsilonGet()) })
             ButtonItem(R.drawable.epsilon, { stack.pop1op({e -> stack.epsilonSet(e)}) })
-            ButtonItem(R.drawable.todp, { stack.padAppend("e") })
-            ButtonItem(R.drawable.blank, { stack.padAppend("d") })
+            ButtonItem(R.drawable.todp, { stack.pop1op({d -> stack.dpSet(d.toInt())}) })
+            ButtonItem(R.drawable.blank, { stack.push(stack.dpGet().toDouble()) })
             ButtonItem(R.drawable.del, { stack.backspaceOrDrop() })
         }
         Row {
             ModalFormatButtonItem(R.drawable.prime,  StackFormat.FLOAT, stack)
-            ModalFormatButtonItem(R.drawable.miximperial,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.miximperial,  StackFormat.MIXIMPERIAL, stack)
             ModalFormatButtonItem(R.drawable.improper,  StackFormat.IMPROPER, stack)
             ModalFormatButtonItem(R.drawable.fix, StackFormat.FLOAT, stack)
             ModalFormatButtonItem(R.drawable.sci,  StackFormat.FLOAT, stack)
