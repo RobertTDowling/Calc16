@@ -1,26 +1,37 @@
 package com.rtdti.calc16
 
+// Todo: Undo
+// Todo: Save/Restore state
+// Todo: Primes
+// Todo: Fix and Sci Modes
+// Todo: Animate push and pops (change in stack depth)
+// Todo: Pick
+// Todo: Mode buttons highlighted
+// Todo: Scrollable Stack
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -123,6 +134,7 @@ class Stack() {
         }
         throw IndexOutOfBoundsException()
     }
+    fun depthGet() : Int { return depth.value }
     fun padGet() : String { return pad.value }
     fun formatGet() : StackFormat { return format.value }
     fun formatSet(fmt: StackFormat) { format.value = fmt }
@@ -231,8 +243,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val stack = Stack()
         setContent {
-            Column {
-                ShowStack(stack)
+            Column (modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally)
+            {
+                Row (modifier = Modifier.fillMaxHeight().weight(1f, fill = false)) {
+                    ShowStack(stack)
+                }
                 KeyPad(stack)
             }
         }
@@ -240,64 +256,60 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun StackSpacer() {
-    Spacer(
-        modifier = Modifier
-            .height(3.dp)
-            .fillMaxWidth()
-            .padding(vertical = 1.dp)
-            .background(
-                color = MaterialTheme.colorScheme.secondary,
-                shape = RectangleShape
-            )
-    )
-}
-
-@Composable
 fun ShowStack(stack: Stack) {
     val formatter = stack.formatter()
-     Column {
-         if (stack.padIsEmpty()) {
-             ShowStackString("")
-             StackSpacer()
-         }
-         for (ei in stack.MAX_DEPTH downTo 0) {
-             if (stack.hasDepth(ei+1)) {
-                 ShowStackString(formatter.format(stack.entry(ei).value, stack.epsilonGet(), stack.dpGet()))
-             } else if (ei==0 && stack.padIsEmpty()) {
-                 ShowStackString("Stack Empty")
-             } else {
-                 ShowStackString("")
-             }
-             if (ei > 0) {
-                 StackSpacer()
+     Column (modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.Bottom) {
+         Row (modifier = Modifier.weight(1f, fill = false)) { // Trick to make this not steal everything
+             Column() {
+                 for (index in stack.depthGet()-1 downTo 0) {
+                     ShowStackString(formatter.format(stack.entry(index).value, stack.epsilonGet(), stack.dpGet()))
+                 }
              }
          }
          if (!stack.padIsEmpty()) {
-             StackSpacer()
-             ShowStackPad(stack.padGet())
+             ShowStackPadString(stack.padGet())
+         } else if (stack.isEmpty()) {
+             ShowStackString("Empty")
          }
+
      }
 }
 
-val stackEntryModifier = Modifier.padding(vertical = 2.dp, horizontal = 8.dp)
+val stackEntryModifier = Modifier.padding(vertical = 0.dp, horizontal = 8.dp)
+val stackSurfaceModifier = Modifier.padding(vertical = 2.dp, horizontal = 8.dp)
 
 @Composable
-fun ShowStackString(str: String) {
-    Text(text=str,
-        color=MaterialTheme.colorScheme.primary,
-        style=MaterialTheme.typography.headlineSmall,
-        modifier = stackEntryModifier)
+fun StackEntrySurface(content: @Composable () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = stackSurfaceModifier.fillMaxWidth(),
+        content = content)
 }
 
 @Composable
-fun ShowStackPad(str: String) {
-    Text(text=str,
-        color=MaterialTheme.colorScheme.error,
-        style=MaterialTheme.typography.headlineSmall,
-        fontStyle = FontStyle.Italic,
-        fontWeight = FontWeight.Bold,
-        modifier = stackEntryModifier)
+fun ShowStackString(str: String) {
+    StackEntrySurface {
+        Text(
+            text = str,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = stackEntryModifier
+        )
+    }
+}
+
+@Composable
+fun ShowStackPadString(str: String) {
+    StackEntrySurface {
+        Text(text=str,
+            color=MaterialTheme.colorScheme.error,
+            style=MaterialTheme.typography.headlineSmall,
+            fontStyle = FontStyle.Italic,
+            fontWeight = FontWeight.Bold,
+            modifier = stackEntryModifier)
+    }
 }
 
 @Composable
@@ -344,9 +356,6 @@ fun ModalFormatButtonItem(
 @Composable
 fun KeyPad(stack: Stack) {
     Column {
-        Row {
-
-        }
         Row {
             ButtonItem(R.drawable.undo, { stack.padAppend("f") })
             ButtonItem(R.drawable.blank, { stack.push(stack.epsilonGet()) })
