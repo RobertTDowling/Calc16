@@ -334,6 +334,7 @@ fun ShowStackPadString(str: String) {
 fun ButtonItem(
     @DrawableRes imageRes: Int,
     onClick: () -> Unit,
+    selected: Boolean = false
 ) {
     IconButton(onClick = onClick,
         //  modifier = Modifier.padding(0.dp)
@@ -345,10 +346,11 @@ fun ButtonItem(
             .scale(10 / 6f, 10 / 6f)
             .padding(vertical = 2.dp)
     ) {
+        val alpha = if (selected) 0.75f else 1f
         Image(
             painter = painterResource(id = imageRes),
             contentDescription = "foo",
-        )
+            alpha = alpha)
     }
 }
 
@@ -368,7 +370,8 @@ fun ModalFormatButtonItem(
             // Highlight this button
         }
     }
-    ButtonItem(imageRes, ::onClick)
+    val selected: Boolean = stack.formatGet() == newFormat
+    ButtonItem(imageRes, ::onClick, selected)
 }
 
 @Composable
