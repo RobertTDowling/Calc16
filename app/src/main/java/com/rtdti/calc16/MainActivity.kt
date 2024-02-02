@@ -36,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rtdti.calc16.ui.theme.Calc16Theme
 import kotlin.math.absoluteValue
 
 data class StackEntry(val value: Double)
@@ -246,13 +247,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val stack = Stack()
         setContent {
-            Column (modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally)
-            {
-                Row (modifier = Modifier.fillMaxHeight().weight(1f, fill = false)) {
-                    ShowStack(stack)
+            Calc16Theme {
+                Surface(modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background)
+                {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    )
+                    {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(1f, fill = false)
+                        ) {
+                            ShowStack(stack)
+                        }
+                        KeyPad(stack)
+                    }
                 }
-                KeyPad(stack)
             }
         }
     }
