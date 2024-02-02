@@ -99,10 +99,22 @@ object StackFormatImproper : StackFormatter {
     }
 }
 
-object StackFormatterMixImperial : StackFormatter {
+object StackFormatMixImperial : StackFormatter {
     override fun format(value: Double, epsilon: Double, dp: Int): String {
         val f = CalcMath.double2imperial(value, epsilon)
         return formatFrac(f, epsilon, false)
+    }
+}
+
+object StackFormatFix : StackFormatter {
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
+        return String.format(String.format("%%.%df", dp), value)
+    }
+}
+
+object StackFormatSci : StackFormatter {
+    override fun format(value: Double, epsilon: Double, dp: Int): String {
+        return String.format(String.format("%%.%de", dp), value)
     }
 }
 
@@ -112,10 +124,10 @@ enum class StackFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
             FLOAT -> StackFormatFloat
             HEX -> StackFormatHex
             IMPROPER -> StackFormatImproper
-            MIXIMPERIAL -> StackFormatterMixImperial
+            MIXIMPERIAL -> StackFormatMixImperial
             PRIME -> StackFormatFloat
-            FIX -> StackFormatFloat
-            SCI -> StackFormatFloat
+            FIX -> StackFormatFix
+            SCI -> StackFormatSci
         }
     }
 }
@@ -367,10 +379,8 @@ fun ModalFormatButtonItem(
         val oldFormat = stack.formatGet()
         if (oldFormat == newFormat) { // Toggle
             stack.formatSet(StackFormat.FLOAT)
-            // Stop highlighting this button
         } else {
             stack.formatSet(newFormat)
-            // Highlight this button
         }
     }
     val selected: Boolean = stack.formatGet() == newFormat
