@@ -31,16 +31,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.rtdti.calc16.ui.theme.Calc16Theme
 import kotlin.math.absoluteValue
 
 data class StackEntry(val value: Double)
 
 interface StackFormatter {
-    fun format(value: Double, epsilon: Double, dp: Int): String
+    fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString
     fun makeEString(error: Double, epsilon: Double): String {
         return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
     }
@@ -76,43 +82,52 @@ interface StackFormatter {
 }
 
 object StackFormatFloat : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
-        return value.toString()
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+        return AnnotatedString(value.toString())
     }
 }
 
 object StackFormatHex : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
         val truncated = value.toLong()
         val error = value - truncated
         val eString = makeEString (error, epsilon * epsilon)
-        return String.format("0x%x%s", truncated, eString)
+        return AnnotatedString(String.format("0x%x%s", truncated, eString))
     }
 }
 
 object StackFormatImproper : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
         val f = CalcMath.double2frac(value, epsilon)
-        return formatFrac(f, epsilon, true)
+        return AnnotatedString(formatFrac(f, epsilon, true))
     }
 }
 
 object StackFormatMixImperial : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
         val f = CalcMath.double2imperial(value, epsilon)
-        return formatFrac(f, epsilon, false)
+        return AnnotatedString(formatFrac(f, epsilon, false))
     }
 }
 
 object StackFormatFix : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
-        return String.format(String.format("%%.%df", dp), value)
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+        return AnnotatedString(String.format(String.format("%%.%df", dp), value))
     }
 }
 
 object StackFormatSci : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): String {
-        return String.format(String.format("%%.%de", dp), value)
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+        return AnnotatedString(String.format(String.format("%%.%de", dp), value))
+    }
+}
+
+object StackFormatPrime : StackFormatter {
+    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+        return buildAnnotatedString {
+            append("2")
+            withStyle(style = SpanStyle(baselineShift = BaselineShift.Superscript,
+                fontSize = 16.sp)) { append("3")} } // FIXME hackmatic font size!!
     }
 }
 
@@ -123,7 +138,7 @@ enum class StackFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
             HEX -> StackFormatHex
             IMPROPER -> StackFormatImproper
             MIXIMPERIAL -> StackFormatMixImperial
-            PRIME -> StackFormatFloat
+            PRIME -> StackFormatPrime
             FIX -> StackFormatFix
             SCI -> StackFormatSci
         }
@@ -300,7 +315,7 @@ fun ShowStack(stack: Stack) {
          if (!stack.padIsEmpty()) {
              ShowStackPadString(stack.padGet())
          } else if (stack.isEmpty()) {
-             ShowStackString("Empty", -1, stack)
+             ShowStackString(AnnotatedString("Empty"), -1, stack)
          }
 
      }
@@ -319,7 +334,7 @@ fun StackEntrySurface(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun ShowStackString(str: String, index: Int, stack: Stack) {
+fun ShowStackString(str: AnnotatedString, index: Int, stack: Stack) {
     StackEntrySurface {
         Text(
             text = str,
