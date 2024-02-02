@@ -106,13 +106,16 @@ object StackFormatterMixImperial : StackFormatter {
     }
 }
 
-enum class StackFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL;
+enum class StackFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
     fun formatter() : StackFormatter {
         return when (this) {
             FLOAT -> StackFormatFloat
             HEX -> StackFormatHex
             IMPROPER -> StackFormatImproper
             MIXIMPERIAL -> StackFormatterMixImperial
+            PRIME -> StackFormatFloat
+            FIX -> StackFormatFloat
+            SCI -> StackFormatFloat
         }
     }
 }
@@ -386,11 +389,11 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable.del, { stack.backspaceOrDrop() })
         }
         Row {
-            ModalFormatButtonItem(R.drawable.prime,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.prime,  StackFormat.PRIME, stack)
             ModalFormatButtonItem(R.drawable.miximperial,  StackFormat.MIXIMPERIAL, stack)
             ModalFormatButtonItem(R.drawable.improper,  StackFormat.IMPROPER, stack)
-            ModalFormatButtonItem(R.drawable.fix, StackFormat.FLOAT, stack)
-            ModalFormatButtonItem(R.drawable.sci,  StackFormat.FLOAT, stack)
+            ModalFormatButtonItem(R.drawable.fix, StackFormat.FIX, stack)
+            ModalFormatButtonItem(R.drawable.sci,  StackFormat.SCI, stack)
             ModalFormatButtonItem(R.drawable.hex, StackFormat.HEX, stack)
         }
         Row {
