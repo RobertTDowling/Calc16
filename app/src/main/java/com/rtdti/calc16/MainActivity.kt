@@ -5,7 +5,6 @@ package com.rtdti.calc16
 // Todo: Primes
 // Todo: Fix and Sci Modes
 // Todo: Animate push and pops (change in stack depth)
-// Todo: Pick
 // Todo: Mode buttons highlighted
 // Todo: Scrollable Stack
 
@@ -14,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -147,6 +147,9 @@ class Stack() {
         depth.value = depth.value - 1
         return entries.removeAt(0).value
     }
+    fun pick(index: Int) {
+        push(entries[index].value)
+    }
     fun swap() {
         padEnter()
         if (hasDepth(2)) {
@@ -263,14 +266,15 @@ fun ShowStack(stack: Stack) {
          Row (modifier = Modifier.weight(1f, fill = false)) { // Trick to make this not steal everything
              Column() {
                  for (index in stack.depthGet()-1 downTo 0) {
-                     ShowStackString(formatter.format(stack.entry(index).value, stack.epsilonGet(), stack.dpGet()))
+                     ShowStackString(formatter.format(stack.entry(index).value, stack.epsilonGet(), stack.dpGet()),
+                         index, stack)
                  }
              }
          }
          if (!stack.padIsEmpty()) {
              ShowStackPadString(stack.padGet())
          } else if (stack.isEmpty()) {
-             ShowStackString("Empty")
+             ShowStackString("Empty", -1, stack)
          }
 
      }
@@ -289,13 +293,14 @@ fun StackEntrySurface(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun ShowStackString(str: String) {
+fun ShowStackString(str: String, index: Int, stack: Stack) {
     StackEntrySurface {
         Text(
             text = str,
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.headlineSmall,
             modifier = stackEntryModifier
+                .clickable { if (index >= 0) stack.pick(index) }
         )
     }
 }
@@ -434,7 +439,7 @@ fun KeyPad(stack: Stack) {
             ButtonItem(R.drawable._3, { stack.padAppend("3")})
             ButtonItem(R.drawable.minus, { stack.binop({a,b -> a-b}) })
             ButtonItem(R.drawable.plusminus, {  stack.unop({a -> -a}) })
-            ButtonItem(R.drawable.blank, {})
+            ButtonItem(R.drawable.blank, { stack.push(stack.depthGet().toDouble()) })
         }
         Row {
             ButtonItem(R.drawable.enter, { stack.enterOrDup() })
