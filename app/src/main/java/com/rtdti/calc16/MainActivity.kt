@@ -3,9 +3,7 @@ package com.rtdti.calc16
 // Todo: Undo
 // Todo: Save/Restore state
 // Todo: Primes
-// Todo: Fix and Sci Modes
 // Todo: Animate push and pops (change in stack depth)
-// Todo: Mode buttons highlighted
 // Todo: Scrollable Stack
 
 import android.os.Bundle
