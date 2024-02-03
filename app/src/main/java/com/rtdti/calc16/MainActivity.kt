@@ -2,7 +2,7 @@ package com.rtdti.calc16
 
 // Todo: Undo
 // Todo: Save/Restore state
-// Todo: Primes
+// Todo: Fix and Sci Modes
 // Todo: Animate push and pops (change in stack depth)
 // Todo: Scrollable Stack
 
@@ -46,7 +46,7 @@ import kotlin.math.absoluteValue
 data class StackEntry(val value: Double)
 
 interface StackFormatter {
-    fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString
+    fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString
     fun makeEString(error: Double, epsilon: Double): String {
         return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
     }
@@ -82,13 +82,13 @@ interface StackFormatter {
 }
 
 object StackFormatFloat : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
         return AnnotatedString(value.toString())
     }
 }
 
 object StackFormatHex : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
         val truncated = value.toLong()
         val error = value - truncated
         val eString = makeEString (error, epsilon * epsilon)
@@ -97,37 +97,34 @@ object StackFormatHex : StackFormatter {
 }
 
 object StackFormatImproper : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
         val f = CalcMath.double2frac(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, true))
     }
 }
 
 object StackFormatMixImperial : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
         val f = CalcMath.double2imperial(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, false))
     }
 }
 
 object StackFormatFix : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
         return AnnotatedString(String.format(String.format("%%.%df", dp), value))
     }
 }
 
 object StackFormatSci : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
         return AnnotatedString(String.format(String.format("%%.%de", dp), value))
     }
 }
 
 object StackFormatPrime : StackFormatter {
-    override fun format(value: Double, epsilon: Double, dp: Int): AnnotatedString {
-        return buildAnnotatedString {
-            append("2")
-            withStyle(style = SpanStyle(baselineShift = BaselineShift.Superscript,
-                fontSize = 16.sp)) { append("3")} } // FIXME hackmatic font size!!
+    override fun format(value: Double, epsilon: Double, dp: Int, fs: Int): AnnotatedString {
+        return CalcMath.primeFactorAnnotatedString(value.toLong(), fs)
     }
 }
 
@@ -302,12 +299,16 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ShowStack(stack: Stack) {
     val formatter = stack.formatter()
-     Column (modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
+     Column (modifier = Modifier
+         .fillMaxSize()
+         .padding(vertical = 8.dp),
             verticalArrangement = Arrangement.Bottom) {
          Row (modifier = Modifier.weight(1f, fill = false)) { // Trick to make this not steal everything
              Column() {
                  for (index in stack.depthGet()-1 downTo 0) {
-                     ShowStackString(formatter.format(stack.entry(index).value, stack.epsilonGet(), stack.dpGet()),
+                     ShowStackString(
+                         formatter.format(stack.entry(index).value, stack.epsilonGet(), stack.dpGet(),
+                             (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()),
                          index, stack)
                  }
              }

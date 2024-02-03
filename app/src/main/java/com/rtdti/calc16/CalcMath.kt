@@ -1,5 +1,11 @@
 package com.rtdti.calc16
 
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
@@ -98,5 +104,47 @@ object CalcMath {
         d /= g
         if (n == 0L) d = g // fix d=1
         return Frac(sign * n, d, x-n.toDouble()/d)
+    }
+
+    fun primeFactorAnnotatedString(x: Long, fs: Int): AnnotatedString {
+        return buildAnnotatedString {
+            fun renderFactor(b: Long, p: Int) {
+                append(b.toString())
+                withStyle(
+                    style = SpanStyle(
+                        baselineShift = BaselineShift.Superscript,
+                        fontSize = fs.sp
+                    )
+                ) { append(p.toString()) }
+            }
+            val end = Math.round(Math.sqrt(x.toDouble()));
+            var a = x
+            var b = 2L
+            var p = 0
+            append(a.toString() + " = ")
+            if (a < 2) {
+                append(a.toString())
+            }
+            while (a > 1) {
+                if ((a % b) == 0L) {
+                    p++
+                    a /= b
+                } else {
+                    if (p > 0) {
+                        renderFactor(b, p)
+                        p = 0
+                    }
+                    b += if (b == 2L) 1L else 2L
+                    if (b > end) {
+                        p++
+                        b = a
+                        break
+                    }
+                }
+            }
+            if (p > 0) {
+                renderFactor(b, p)
+            }
+        } // buildAnnotatedString
     }
 }
