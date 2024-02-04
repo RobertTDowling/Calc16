@@ -3,14 +3,11 @@ package com.rtdti.calc16
 // Todo: Undo
 // Todo: Save/Restore state
 // Todo: Animate push and pops (change in stack depth)
-// Todo: Scrollable Stack
-// Todo: Buttons as text
+// Todo: Scrollable Stack with automatic reveal at bottom on any action
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,11 +25,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rtdti.calc16.ui.theme.Calc16Theme
 import kotlin.math.absoluteValue
@@ -354,36 +353,84 @@ fun ShowStackPadString(str: String) {
     }
 }
 
+val rowModifier = Modifier.fillMaxWidth()
+val rowArragement = Arrangement.SpaceBetween
+val colModifier = Modifier
+    .fillMaxWidth()
+    .padding(vertical = 2.dp, horizontal = 8.dp)
+val keySurfaceModifier = Modifier.padding(2.dp)
+val keyTextModifier = Modifier
+    .clickable(onClick = {})
+    //.width(44.dp).height(24.dp)
+    .width(60.dp).height(40.dp)
+    .padding(horizontal = 8.dp, vertical = 0.dp) // 8
+
+enum class Keytype { CONTROL, ENTRY, UNOP, BINOP, TRIG, MODE }
 @Composable
-fun ButtonItem(
-    @DrawableRes imageRes: Int,
-    onClick: () -> Unit,
-    selected: Boolean = false
-) {
-    IconButton(onClick = onClick,
-        //  modifier = Modifier.padding(0.dp)
-        modifier = Modifier
-            // .width(72.dp).height(48.dp).scale(2f, 2f)
-            // .width(66.dp).height(44.dp).scale(11/6f, 11/6f)
-            .width(66.dp)
-            .height(44.dp)
-            .scale(10 / 6f, 10 / 6f)
-            .padding(vertical = 2.dp)
-    ) {
-        val alpha = if (selected) 0.75f else 1f
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = "foo",
-            alpha = alpha)
+fun fgColor(typex: Keytype): Color {
+    return when (typex) {
+        Keytype.CONTROL -> MaterialTheme.colorScheme.inverseSurface
+        Keytype.ENTRY -> MaterialTheme.colorScheme.primary
+        Keytype.UNOP -> MaterialTheme.colorScheme.secondary
+        Keytype.BINOP -> MaterialTheme.colorScheme.tertiary
+        Keytype.TRIG -> MaterialTheme.colorScheme.tertiary
+        Keytype.MODE -> MaterialTheme.colorScheme.errorContainer
+    }
+}
+@Composable
+fun bgColor(typex: Keytype): Color {
+    return when (typex) {
+        Keytype.CONTROL -> MaterialTheme.colorScheme.background
+        Keytype.ENTRY -> MaterialTheme.colorScheme.onPrimary
+        Keytype.UNOP -> MaterialTheme.colorScheme.onSecondary
+        Keytype.BINOP -> MaterialTheme.colorScheme.onTertiary
+        Keytype.TRIG -> MaterialTheme.colorScheme.onSecondary
+        Keytype.MODE -> MaterialTheme.colorScheme.onErrorContainer
     }
 }
 
 @Composable
-fun ModalFormatButtonItem(
-    @DrawableRes imageRes: Int,
-    newFormat: StackFormat,
-    stack: Stack
-) {
+fun btop(b: String, p: String, raised: Boolean = false): AnnotatedString {
+    return buildAnnotatedString {
+        if (raised) {
+            // pushStyle(style = SpanStyle(baselineShift = BaselineShift(-0.7f)))
+        }
+        append(b)
+        withStyle(
+            style = SpanStyle(
+                baselineShift = BaselineShift.Superscript,
+                fontSize = MaterialTheme.typography.bodySmall.fontSize
+            )
+        ) { append(p) }
+    }
+}
+
+@Composable
+fun KeyButton(text: String, onClick: () -> Unit, type: Keytype, selected: Boolean = false, crowded: Boolean = false) {
+    KeyButton(text = AnnotatedString(text), onClick, type, selected, crowded)
+}
+
+@Composable
+fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selected: Boolean = false, crowded: Boolean = false) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = if (selected) MaterialTheme.colorScheme.error else bgColor(type),
+        modifier = keySurfaceModifier
+    ) {
+        val mod = if (crowded) keyTextModifier.padding(top = 8.dp) else keyTextModifier.padding(top = 4.dp)
+        Text(
+            text = text,
+            color = fgColor(type),
+            modifier = mod.clickable { onClick() },
+            fontSize = if (crowded)
+                MaterialTheme.typography.titleMedium.fontSize
+            else
+                MaterialTheme.typography.titleLarge.fontSize,
+        )
+    }
+}
+@Composable
+fun ModalKeyButton(text: String, newFormat: StackFormat, stack: Stack, crowded: Boolean = false) {
     fun onClick() {
         val oldFormat = stack.formatGet()
         if (oldFormat == newFormat) { // Toggle
@@ -393,99 +440,136 @@ fun ModalFormatButtonItem(
         }
     }
     val selected: Boolean = stack.formatGet() == newFormat
-    ButtonItem(imageRes, ::onClick, selected)
+    KeyButton(text, ::onClick, Keytype.MODE, selected, crowded)
 }
 
 @Composable
 fun KeyPad(stack: Stack) {
-    Column {
-        Row {
-            ButtonItem(R.drawable.undo, { stack.padAppend("f") })
-            ButtonItem(R.drawable.blank, { stack.push(stack.epsilonGet()) })
-            ButtonItem(R.drawable.epsilon, { stack.pop1op({e -> stack.epsilonSet(e)}) })
-            ButtonItem(R.drawable.todp, { stack.pop1op({d -> stack.dpSet(d.toInt())}) })
-            ButtonItem(R.drawable.blank, { stack.push(stack.dpGet().toDouble()) })
-            ButtonItem(R.drawable.del, { stack.backspaceOrDrop() })
+    Column (
+        modifier = colModifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom
+    ) {
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "⤺", {  }, Keytype.CONTROL)
+            KeyButton(text = " ", { stack.push(stack.epsilonGet()) }, Keytype.BINOP)
+            KeyButton(text = "→ϵ", { stack.pop1op({ e -> stack.epsilonSet(e)}) }, Keytype.UNOP)
+            KeyButton(text = "→.", { stack.pop1op({ d -> stack.dpSet(d.toInt())}) }, Keytype.UNOP)
+            KeyButton(text = " ", { stack.push(stack.dpGet().toDouble()) }, Keytype.BINOP)
+            KeyButton(text = "◀", { stack.backspaceOrDrop() }, Keytype.CONTROL)
         }
-        Row {
-            ModalFormatButtonItem(R.drawable.prime,  StackFormat.PRIME, stack)
-            ModalFormatButtonItem(R.drawable.miximperial,  StackFormat.MIXIMPERIAL, stack)
-            ModalFormatButtonItem(R.drawable.improper,  StackFormat.IMPROPER, stack)
-            ModalFormatButtonItem(R.drawable.fix, StackFormat.FIX, stack)
-            ModalFormatButtonItem(R.drawable.sci,  StackFormat.SCI, stack)
-            ModalFormatButtonItem(R.drawable.hex, StackFormat.HEX, stack)
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            ModalKeyButton(text = "2³·5⁷", StackFormat.PRIME, stack, crowded = true)
+            ModalKeyButton(text = "1-¾", StackFormat.MIXIMPERIAL, stack)
+            ModalKeyButton(text = "⅖", StackFormat.IMPROPER, stack)
+            ModalKeyButton(text = "[1.23]", StackFormat.FIX, stack, crowded = true)
+            ModalKeyButton(text = "1e+0", StackFormat.SCI, stack, crowded = true)
+            ModalKeyButton(text = "x₁₆", StackFormat.HEX, stack)
         }
-        Row {
-            ButtonItem(R.drawable.floor, { stack.unop({a -> Math.floor(a)}) })
-            ButtonItem(R.drawable.round, { stack.unop({a -> Math.round(a).toDouble() }) })
-            ButtonItem(R.drawable.ceil, { stack.unop({a -> Math.ceil(a)}) })
-            ButtonItem(R.drawable.gcd, { stack.binop({a,b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) })
-            ButtonItem(R.drawable.lcm, { stack.binop({a,b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) })
-            ButtonItem(R.drawable.pi, { stack.padEnter(); stack.push(Math.PI) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "⎣x⎦", { stack.unop({ a -> Math.floor(a)}) }, Keytype.UNOP)
+            KeyButton(text = "[x]", { stack.unop({ a -> Math.round(a).toDouble() }) }, Keytype.UNOP)
+            KeyButton(text = "⎡x⎤", { stack.unop({ a -> Math.ceil(a)}) }, Keytype.UNOP)
+            KeyButton(text = "gcd", { stack.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
+            KeyButton(text = "lcm", { stack.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
+            KeyButton(text = " ", { stack.push(stack.depthGet().toDouble()) }, Keytype.BINOP)
         }
-        Row {
-            ButtonItem(R.drawable.arcsin, { stack.unop({a -> Math.asin(a)}) })
-            ButtonItem(R.drawable.arccos, { stack.unop({a -> Math.acos(a)}) })
-            ButtonItem(R.drawable.arctan, { stack.unop({a -> Math.atan(a)}) })
-            ButtonItem(R.drawable.exp, { stack.unop({a -> Math.exp(a)}) })
-            ButtonItem(R.drawable._2tox, { stack.unop({a -> Math.pow(2.0,a)}) })
-            ButtonItem(R.drawable.todeg, { stack.unop({a -> 180*a/Math.PI}) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = btop("sin","-1"), { stack.unop({ a -> Math.asin(a)}) }, Keytype.TRIG, crowded = true)
+            KeyButton(text = btop("cos","-1"), { stack.unop({ a -> Math.acos(a)}) }, Keytype.TRIG, crowded = true)
+            KeyButton(text = btop("tan","-1"), { stack.unop({ a -> Math.atan(a)}) }, Keytype.TRIG, crowded = true)
+            KeyButton(text = btop("e","x"), { stack.unop({ a -> Math.exp(a)}) }, Keytype.TRIG)
+            KeyButton(text = btop("2","x"), { stack.unop({ a -> Math.pow(2.0,a)}) }, Keytype.TRIG)
+            KeyButton(text = "r→⚬", { stack.unop({ a -> 180*a/Math.PI}) }, Keytype.TRIG)
         }
-        Row {
-            ButtonItem(R.drawable.sin, { stack.unop({a -> Math.sin(a)}) })
-            ButtonItem(R.drawable.cos, { stack.unop({a -> Math.cos(a)}) })
-            ButtonItem(R.drawable.tan, { stack.unop({a -> Math.tan(a)}) })
-            ButtonItem(R.drawable.ln, { stack.unop({a -> Math.log(a)}) })
-            ButtonItem(R.drawable.log2, { stack.unop({a -> Math.log(a)/Math.log(2.0)}) })
-            ButtonItem(R.drawable.degto, { stack.unop({a -> Math.PI*a/180}) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "sin", { stack.unop({ a -> Math.sin(a)}) }, Keytype.TRIG)
+            KeyButton(text = "cos", { stack.unop({ a -> Math.cos(a)}) }, Keytype.TRIG)
+            KeyButton(text = "tan", { stack.unop({ a -> Math.tan(a)}) }, Keytype.TRIG)
+            KeyButton(text = "log", { stack.unop({ a -> Math.log(a)}) }, Keytype.TRIG)
+            KeyButton(text = "log₂", { stack.unop({ a -> Math.log(a)/Math.log(2.0)}) }, Keytype.TRIG)
+            KeyButton(text = "⚬→r", { stack.unop({ a -> Math.PI*a/180}) }, Keytype.TRIG)
         }
-        Row {
-            ButtonItem(R.drawable.d, { stack.padAppend("d") })
-            ButtonItem(R.drawable.e, { stack.padAppend("e") })
-            ButtonItem(R.drawable.f, { stack.padAppend("f") })
-            ButtonItem(R.drawable.not, { stack.unop({a -> -1.0-a}) })
-            ButtonItem(R.drawable.times2, { stack.unop({a -> a*2.0}) })
-            ButtonItem(R.drawable.divide2, { stack.unop({a -> a/2.0}) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "D", { stack.padAppend("d") }, Keytype.ENTRY)
+            KeyButton(text = "E", { stack.padAppend("e") }, Keytype.ENTRY)
+            KeyButton(text = "F", { stack.padAppend("f") }, Keytype.ENTRY)
+            KeyButton(text = "¬", { stack.unop({ a -> -1.0-a}) }, Keytype.UNOP)
+            KeyButton(text = "2×", { stack.unop({ a -> a*2.0}) }, Keytype.UNOP)
+            KeyButton(text = "2÷", { stack.unop({ a -> a/2.0}) }, Keytype.UNOP)
         }
-        Row {
-            ButtonItem(R.drawable.a, { stack.padAppend("a") })
-            ButtonItem(R.drawable.b, { stack.padAppend("b") })
-            ButtonItem(R.drawable.c, { stack.padAppend("c") })
-            ButtonItem(R.drawable.and, { stack.binop({a,b -> a.toLong().and(b.toLong()).toDouble()}) })
-            ButtonItem(R.drawable.or, { stack.binop({a,b -> a.toLong().or(b.toLong()).toDouble()}) })
-            ButtonItem(R.drawable.xor, { stack.binop({a,b -> a.toLong().xor(b.toLong()).toDouble()}) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "A", { stack.padAppend("a") }, Keytype.ENTRY)
+            KeyButton(text = "B", { stack.padAppend("b") }, Keytype.ENTRY)
+            KeyButton(text = "C", { stack.padAppend("c") }, Keytype.ENTRY)
+            KeyButton(text = "∧", { stack.binop({ a, b -> a.toLong().and(b.toLong()).toDouble()}) }, Keytype.BINOP)
+            KeyButton(text = "∨", { stack.binop({ a, b -> a.toLong().or(b.toLong()).toDouble()}) }, Keytype.BINOP)
+            KeyButton(text = "⨁", { stack.binop({ a, b -> a.toLong().xor(b.toLong()).toDouble()}) }, Keytype.BINOP)
         }
-        Row {
-            ButtonItem(R.drawable._7, { stack.padAppend("7")})
-            ButtonItem(R.drawable._8, { stack.padAppend("8")})
-            ButtonItem(R.drawable._9, { stack.padAppend("9")})
-            ButtonItem(R.drawable.divide, { stack.binop({a,b -> a/b}) })
-            ButtonItem(R.drawable.invx, { stack.unop({a -> 1.0/a}) })
-            ButtonItem(R.drawable.mod, { stack.binop({a,b -> a%b}) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "7", { stack.padAppend("7") }, Keytype.ENTRY)
+            KeyButton(text = "8", { stack.padAppend("8") }, Keytype.ENTRY)
+            KeyButton(text = "9", { stack.padAppend("9") }, Keytype.ENTRY)
+            KeyButton(text = "÷", { stack.binop({ a, b -> a/b}) }, Keytype.BINOP)
+            KeyButton(text = "1/x", { stack.unop({ a -> 1.0/a}) }, Keytype.UNOP)
+            KeyButton(text = "mod", { stack.binop({ a, b -> a%b}) }, Keytype.BINOP, crowded = true)
         }
-        Row {
-            ButtonItem(R.drawable._4, { stack.padAppend("4")})
-            ButtonItem(R.drawable._5, { stack.padAppend("5")})
-            ButtonItem(R.drawable._6, { stack.padAppend("6")})
-            ButtonItem(R.drawable.times, { stack.binop({a,b -> a*b}) })
-            ButtonItem(R.drawable.ytox, { stack.binop({a,b -> Math.pow(a,b)}) })
-            ButtonItem(R.drawable.ee, { stack.binop({a,b -> a*Math.pow(10.0,b)})})
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "4", { stack.padAppend("4") }, Keytype.ENTRY)
+            KeyButton(text = "5", { stack.padAppend("5") }, Keytype.ENTRY)
+            KeyButton(text = "6", { stack.padAppend("6") }, Keytype.ENTRY)
+            KeyButton(text = "×", { stack.binop({ a, b -> a*b}) }, Keytype.BINOP)
+            KeyButton(text = btop("y","x",true), { stack.binop({ a, b -> Math.pow(a,b)}) }, Keytype.BINOP)
+            KeyButton(text = btop("y10","x"), { stack.binop({ a, b -> a*Math.pow(10.0,b)}) }, Keytype.BINOP)
         }
-        Row {
-            ButtonItem(R.drawable._1, { stack.padAppend("1")})
-            ButtonItem(R.drawable._2, { stack.padAppend("2")})
-            ButtonItem(R.drawable._3, { stack.padAppend("3")})
-            ButtonItem(R.drawable.minus, { stack.binop({a,b -> a-b}) })
-            ButtonItem(R.drawable.plusminus, {  stack.unop({a -> -a}) })
-            ButtonItem(R.drawable.blank, { stack.push(stack.depthGet().toDouble()) })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "1", { stack.padAppend("1") }, Keytype.ENTRY)
+            KeyButton(text = "2", { stack.padAppend("2") }, Keytype.ENTRY)
+            KeyButton(text = "3", { stack.padAppend("3") }, Keytype.ENTRY)
+            KeyButton(text = "−", { stack.binop({ a, b -> a-b}) }, Keytype.BINOP)
+            KeyButton(text = "±", { stack.unop({ a -> -a}) }, Keytype.UNOP)
+            KeyButton(text = "π", { stack.padEnter(); stack.push(Math.PI) }, Keytype.ENTRY)
         }
-        Row {
-            ButtonItem(R.drawable.enter, { stack.enterOrDup() })
-            ButtonItem(R.drawable._0, { stack.padAppend("0")})
-            ButtonItem(R.drawable.point, { stack.padAppend(".")})
-            ButtonItem(R.drawable.plus, { stack.binop({a,b -> a+b}) })
-            ButtonItem(R.drawable.root, { stack.unop({a -> Math.sqrt(a)}) })
-            ButtonItem(R.drawable.swap, { stack.swap() })
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = rowArragement
+        ) {
+            KeyButton(text = "▲", { stack.enterOrDup() }, Keytype.CONTROL)
+            KeyButton(text = "0", { stack.padAppend("0") }, Keytype.ENTRY)
+            KeyButton(text = ".", { stack.padAppend(".") }, Keytype.ENTRY)
+            KeyButton(text = "+", { stack.binop({ a, b -> a+b}) }, Keytype.BINOP)
+            KeyButton(text = "√x", { stack.unop({ a -> Math.sqrt(a)}) }, Keytype.UNOP)
+            KeyButton(text = "x⇄y", { stack.swap() }, Keytype.CONTROL, crowded = true)
         }
     }
 }
