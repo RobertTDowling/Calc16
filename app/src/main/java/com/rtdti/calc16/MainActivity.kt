@@ -2,9 +2,9 @@ package com.rtdti.calc16
 
 // Todo: Undo
 // Todo: Save/Restore state
-// Todo: Fix and Sci Modes
 // Todo: Animate push and pops (change in stack depth)
 // Todo: Scrollable Stack
+// Todo: Buttons as text
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -32,14 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.rtdti.calc16.ui.theme.Calc16Theme
 import kotlin.math.absoluteValue
 
