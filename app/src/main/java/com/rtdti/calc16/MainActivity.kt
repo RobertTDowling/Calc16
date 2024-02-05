@@ -157,8 +157,6 @@ val colModifier = Modifier
     .padding(vertical = 2.dp, horizontal = 8.dp)
 val keySurfaceModifier = Modifier.padding(2.dp)
 val keyTextModifier = Modifier
-    .clickable(onClick = {})
-    //.width(44.dp).height(24.dp)
     .width(60.dp).height(40.dp)
     .padding(horizontal = 8.dp, vertical = 0.dp) // 8
 
