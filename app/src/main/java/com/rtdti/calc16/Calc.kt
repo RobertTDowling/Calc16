@@ -204,13 +204,15 @@ class Calc() {
     fun undoSave() {
         undoManager.save(CalcState(stack.copy(), pad.copy(), formatParameters.copy()))
     }
-    fun undoRestore() {
+    fun undoRestore(): Boolean { // Return true if undo stack is empty
         val cs = undoManager.restore()
         cs?.let {
             stack.set(cs.stack)
             pad.set(cs.pad)
             formatParameters.set(cs.formatParameters)
+            return false
         }
+        return true
     }
 
     fun padAppend(str: String) { pad.append(str) }

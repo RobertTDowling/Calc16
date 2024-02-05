@@ -19,9 +19,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,23 +46,31 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val calc = Calc()
         setContent {
-            Calc16Theme {
-                Surface(modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background)
+            TheScaffold(calc)
+        }
+    }
+}
+
+@Composable
+fun TheScaffold(calc: Calc) { // Needed to show snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { innerPadding ->
+        Calc16Theme {
+            Surface(modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background)
+            {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                )
                 {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    )
-                    {
-                        Row(modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(1f, fill = false)
-                        ) {
-                            ShowStack(calc)
-                        }
-                        KeyPad(calc)
+                    Row(modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f, fill = false)
+                    ) {
+                        ShowStack(calc)
                     }
+                    KeyPad(calc, snackbarHostState)
                 }
             }
         }
@@ -229,7 +241,8 @@ fun ModalKeyButton(text: String, newFormat: NumberFormat, calc: Calc, crowded: B
 }
 
 @Composable
-fun KeyPad(calc: Calc) {
+fun KeyPad(calc: Calc, snackbarHostState: SnackbarHostState) {
+    val coroutineScope = rememberCoroutineScope()
     Column (
         modifier = colModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -239,7 +252,8 @@ fun KeyPad(calc: Calc) {
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = "⤺", { calc.undoRestore() }, Keytype.CONTROL)
+            fun noMoreUndos() { coroutineScope.launch { snackbarHostState.showSnackbar("No More Undos")} }
+            KeyButton(text = "⤺", { if (calc.undoRestore()) noMoreUndos() }, Keytype.CONTROL)
             KeyButton(text = " ", { calc.push(calc.formatParameters.epsilon.value) }, Keytype.BINOP)
             KeyButton(text = "→ϵ", { calc.pop1op({ e -> calc.formatParameters.epsilon.value = e}) }, Keytype.UNOP)
             KeyButton(text = "→.", { calc.pop1op({ d -> calc.formatParameters.decimalPlaces.value = d.toInt()}) }, Keytype.UNOP)
