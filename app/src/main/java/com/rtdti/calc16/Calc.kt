@@ -235,8 +235,8 @@ class Calc() {
         }
     }
     fun backspaceOrDrop() { // Combo backspace and drop
-        undoSave()
         if (pad.isEmpty()) {
+            undoSave()
             if (!stack.isEmpty()) {
                 stack.pop()
             }
