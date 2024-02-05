@@ -1,6 +1,5 @@
 package com.rtdti.calc16
 
-// Todo: Undo
 // Todo: Save/Restore state
 // Todo: Animate push and pops (change in stack depth)
 
@@ -84,7 +83,7 @@ fun ShowStack(calc: Calc) {
         for (index in stack.depthGet()-1 downTo 0) {
             val text = formatter.format(stack.entry(index).value, calc.formatParameters)
             item {
-                ShowStackString(text, index, stack)
+                ShowStackString(text, index, calc)
             }
         }
         if (!pad.isEmpty()) {
@@ -93,7 +92,7 @@ fun ShowStack(calc: Calc) {
             }
         } else if (stack.isEmpty()) {
             item {
-                ShowStackString(AnnotatedString("Empty"), -1, stack)
+                ShowStackString(AnnotatedString("Empty"), -1, calc)
             }
         }
         coroutineScope.launch {
@@ -115,14 +114,14 @@ fun StackEntrySurface(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun ShowStackString(str: AnnotatedString, index: Int, stack: Stack) {
+fun ShowStackString(str: AnnotatedString, index: Int, calc: Calc) {
     StackEntrySurface {
         Text(
             text = str,
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.headlineSmall,
             modifier = stackEntryModifier
-                .clickable { if (index >= 0) stack.pick(index) }
+                .clickable { if (index >= 0) calc.pick(index) }
         )
     }
 }
@@ -240,7 +239,7 @@ fun KeyPad(calc: Calc) {
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = "⤺", {  }, Keytype.CONTROL)
+            KeyButton(text = "⤺", { calc.undoRestore() }, Keytype.CONTROL)
             KeyButton(text = " ", { calc.push(calc.formatParameters.epsilon.value) }, Keytype.BINOP)
             KeyButton(text = "→ϵ", { calc.pop1op({ e -> calc.formatParameters.epsilon.value = e}) }, Keytype.UNOP)
             KeyButton(text = "→.", { calc.pop1op({ d -> calc.formatParameters.decimalPlaces.value = d.toInt()}) }, Keytype.UNOP)
