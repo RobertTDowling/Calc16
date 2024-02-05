@@ -3,7 +3,6 @@ package com.rtdti.calc16
 // Todo: Undo
 // Todo: Save/Restore state
 // Todo: Animate push and pops (change in stack depth)
-// Todo: Scrollable Stack with automatic reveal at bottom on any action
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,10 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rtdti.calc16.ui.theme.Calc16Theme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,28 +68,38 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ShowStack(calc: Calc) {
+    val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     val stack = calc.stack
     val pad = calc.pad
     val formatter = calc.formatter()
     calc.formatParameters.superscriptFontSizeInt.value = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
-     Column (modifier = Modifier
-         .fillMaxSize()
-         .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.Bottom) {
-         Row (modifier = Modifier.weight(1f, fill = false)) { // Trick to make this not steal everything
-             Column() {
-                 for (index in stack.depthGet()-1 downTo 0) {
-                     val text = formatter.format(stack.entry(index).value, calc.formatParameters)
-                     ShowStackString(text, index, stack)
-                 }
-             }
-         }
-         if (!calc.pad.isEmpty()) {
-             ShowStackPadString(pad.get())
-         } else if (stack.isEmpty()) {
-             ShowStackString(AnnotatedString("Empty"), -1, stack)
-         }
-     }
+    LazyColumn(
+        state = lazyListState,
+        verticalArrangement = Arrangement.Bottom,
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 0.dp)
+            .fillMaxSize()
+    ) {
+        for (index in stack.depthGet()-1 downTo 0) {
+            val text = formatter.format(stack.entry(index).value, calc.formatParameters)
+            item {
+                ShowStackString(text, index, stack)
+            }
+        }
+        if (!pad.isEmpty()) {
+            item {
+                ShowStackPadString(pad.get())
+            }
+        } else if (stack.isEmpty()) {
+            item {
+                ShowStackString(AnnotatedString("Empty"), -1, stack)
+            }
+        }
+        coroutineScope.launch {
+            lazyListState.animateScrollToItem(lazyListState.layoutInfo.totalItemsCount - 1)
+        }
+    }
 }
 
 val stackEntryModifier = Modifier.padding(vertical = 0.dp, horizontal = 8.dp)
