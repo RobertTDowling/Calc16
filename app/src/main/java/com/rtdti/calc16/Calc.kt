@@ -12,6 +12,7 @@ class FormatParameters() {
     val epsilon = mutableStateOf(1e-4)
     val decimalPlaces = mutableStateOf(2)
     val superscriptFontSizeInt = mutableStateOf(0)
+    val numberFormat = mutableStateOf(NumberFormat.FLOAT)
     fun copy(): FormatParameters {
         val newFormatParameters = FormatParameters()
         newFormatParameters.set(this)
@@ -21,6 +22,7 @@ class FormatParameters() {
         epsilon.value = other.epsilon.value
         decimalPlaces.value = other.decimalPlaces.value
         superscriptFontSizeInt.value = other.superscriptFontSizeInt.value
+        numberFormat.value = other.numberFormat.value
     }
 }
 
@@ -113,7 +115,7 @@ object StackFormatPrime : StackFormatter {
     }
 }
 
-enum class StackFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
+enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
     fun formatter() : StackFormatter {
         return when (this) {
             FLOAT -> StackFormatFloat
@@ -194,21 +196,19 @@ class Pad {
 class Calc() {
     val stack = Stack()
     val pad = Pad()
-    val stackFormat = mutableStateOf(StackFormat.FLOAT)
     val formatParameters = FormatParameters()
     val undoManager = UndoManager()
-    fun formatGet() : StackFormat { return stackFormat.value }
-    fun formatSet(fmt: StackFormat) { stackFormat.value = fmt }
-    fun formatter(): StackFormatter { return stackFormat.value.formatter() }
+    fun formatGet() : NumberFormat { return formatParameters.numberFormat.value }
+    fun formatSet(fmt: NumberFormat) { formatParameters.numberFormat.value = fmt }
+    fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
     fun undoSave() {
-        undoManager.save(CalcState(stack.copy(), pad.copy(), stackFormat.value, formatParameters.copy())) // FIXME: make all 4 the same?
+        undoManager.save(CalcState(stack.copy(), pad.copy(), formatParameters.copy()))
     }
     fun undoRestore() {
         val cs = undoManager.restore()
         cs?.let {
             stack.set(cs.stack)
             pad.set(cs.pad)
-            stackFormat.value = cs.stackFormat
             formatParameters.set(cs.formatParameters)
         }
     }
@@ -220,7 +220,7 @@ class Calc() {
             // Do nothing?
         } else {
             val x = try {
-                if (formatGet() == StackFormat.HEX) {
+                if (formatGet() == NumberFormat.HEX) {
                     pad.get().toLong(radix = 16).toDouble()
                 } else {
                     pad.get().toDouble()
@@ -296,7 +296,7 @@ class Calc() {
     }
 }
 
-data class CalcState(val stack: Stack, val pad: Pad, val stackFormat: StackFormat, val formatParameters: FormatParameters)
+data class CalcState(val stack: Stack, val pad: Pad, val formatParameters: FormatParameters)
 
 class UndoManager {
     val TAG="UndoManager"

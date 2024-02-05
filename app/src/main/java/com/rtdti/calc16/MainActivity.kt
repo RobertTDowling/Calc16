@@ -215,11 +215,11 @@ fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selecte
     }
 }
 @Composable
-fun ModalKeyButton(text: String, newFormat: StackFormat, calc: Calc, crowded: Boolean = false) {
+fun ModalKeyButton(text: String, newFormat: NumberFormat, calc: Calc, crowded: Boolean = false) {
     fun onClick() {
         val oldFormat = calc.formatGet()
         if (oldFormat == newFormat) { // Toggle
-            calc.formatSet(StackFormat.FLOAT)
+            calc.formatSet(NumberFormat.FLOAT)
         } else {
             calc.formatSet(newFormat)
         }
@@ -250,12 +250,12 @@ fun KeyPad(calc: Calc) {
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            ModalKeyButton(text = "2³·5⁷", StackFormat.PRIME, calc, crowded = true)
-            ModalKeyButton(text = "1-¾", StackFormat.MIXIMPERIAL, calc)
-            ModalKeyButton(text = "⅖", StackFormat.IMPROPER, calc)
-            ModalKeyButton(text = "[1.23]", StackFormat.FIX, calc, crowded = true)
-            ModalKeyButton(text = "1e+0", StackFormat.SCI, calc, crowded = true)
-            ModalKeyButton(text = "x₁₆", StackFormat.HEX, calc)
+            ModalKeyButton(text = "2³·5⁷", NumberFormat.PRIME, calc, crowded = true)
+            ModalKeyButton(text = "1-¾", NumberFormat.MIXIMPERIAL, calc)
+            ModalKeyButton(text = "⅖", NumberFormat.IMPROPER, calc)
+            ModalKeyButton(text = "[1.23]", NumberFormat.FIX, calc, crowded = true)
+            ModalKeyButton(text = "1e+0", NumberFormat.SCI, calc, crowded = true)
+            ModalKeyButton(text = "x₁₆", NumberFormat.HEX, calc)
         }
         Row(
             modifier = rowModifier,
