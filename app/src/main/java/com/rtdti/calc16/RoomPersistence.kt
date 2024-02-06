@@ -20,6 +20,226 @@ import kotlinx.coroutines.launch
 import java.lang.IllegalArgumentException
 
 @Entity
+data class ZuperTable(
+    @PrimaryKey val uid: Int,
+    @ColumnInfo(name = "epoch") val epoch: Int,
+    @ColumnInfo(name = "pad") val pad: String,
+    @ColumnInfo(name = "depth") val depth: Int,
+    @ColumnInfo(name = "stack00") val stack00: Double,
+    @ColumnInfo(name = "stack01") val stack01: Double,
+    @ColumnInfo(name = "stack02") val stack02: Double,
+    @ColumnInfo(name = "stack03") val stack03: Double,
+    @ColumnInfo(name = "stack04") val stack04: Double,
+    @ColumnInfo(name = "stack05") val stack05: Double,
+    @ColumnInfo(name = "stack06") val stack06: Double,
+    @ColumnInfo(name = "stack07") val stack07: Double,
+    @ColumnInfo(name = "stack08") val stack08: Double,
+    @ColumnInfo(name = "stack09") val stack09: Double,
+    @ColumnInfo(name = "epsilon") val epsilon: Double,
+    @ColumnInfo(name = "decimalPlaces") val decimalPlaces: Int,
+    @ColumnInfo(name = "numberFormat") val numberFormat: String
+)
+
+@Dao
+interface CalcDao {
+    @Query("SELECT * from ZuperTable")
+    fun getZuper(): Flow<List<ZuperTable>>
+
+    @Query(
+        """INSERT INTO ZuperTable 
+        (epoch, pad, depth, 
+         stack00, stack01, stack02, stack03, stack04, 
+         stack05, stack06, stack07, stack08, stack09, 
+         epsilon, decimalPlaces, numberFormat)
+         VALUES  (:epoch, :pad, :depth,
+                  :stack00, :stack01, :stack02, :stack03, :stack04, 
+                  :stack05, :stack06, :stack07, :stack08, :stack09,
+                  :epsilon, :decimalPlaces, :numberFormat)"""
+    )
+    suspend fun insertZuper(
+        epoch: Int,
+        pad: String,
+        depth: Int,
+        stack00: Double,
+        stack01: Double,
+        stack02: Double,
+        stack03: Double,
+        stack04: Double,
+        stack05: Double,
+        stack06: Double,
+        stack07: Double,
+        stack08: Double,
+        stack09: Double,
+        epsilon: Double,
+        decimalPlaces: Double,
+        numberFormat: NumberFormat
+    )
+
+    @Query("DELETE from ZuperTable")
+    fun clearZuperTable()
+
+    @Query(
+        """UPDATE ZuperTable SET 
+        pad = :pad, depth = :depth, 
+        stack00 = :stack00, stack01 = :stack01, stack02 = :stack02, stack03 = :stack03, stack04 = :stack04,
+        stack05 = :stack05, stack06 = :stack06, stack07 = :stack07, stack08 = :stack08, stack09 = :stack09,
+        epsilon = :epsilon, decimalPlaces = :decimalPlaces, numberFormat = :numberFormat 
+        WHERE epoch = :epoch"""
+    )
+    suspend fun updateZuper(
+        epoch: Int,
+        pad: String,
+        depth: Int,
+        stack00: Double,
+        stack01: Double,
+        stack02: Double,
+        stack03: Double,
+        stack04: Double,
+        stack05: Double,
+        stack06: Double,
+        stack07: Double,
+        stack08: Double,
+        stack09: Double,
+        epsilon: Double,
+        decimalPlaces: Double,
+        numberFormat: NumberFormat
+    )
+}
+
+@Database(entities = arrayOf(ZuperTable::class),
+    version = 1, exportSchema = false)
+public abstract class CalcDatabase : RoomDatabase() {
+    abstract fun calcDao(): CalcDao
+    companion object {
+        @Volatile
+        private var INSTANCE: CalcDatabase? = null
+        fun getDatabase(context: Context): CalcDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    CalcDatabase::class.java,
+                    "calc_database"
+                )
+                    .fallbackToDestructiveMigration()
+                    //.addCallback(TimeLogDatabaseCallback(scope))
+                    .allowMainThreadQueries()
+                    .build()
+                INSTANCE = instance
+                // return instance
+                instance
+            }
+        }
+    }
+}
+
+class CalcRepository(private val calcDao: CalcDao) {
+    val zuper: Flow<List<ZuperTable>> = calcDao.getZuper()
+
+    @WorkerThread
+    suspend fun insertZuper(
+        epoch: Int,
+        pad: String,
+        depth: Int,
+        stack00: Double,
+        stack01: Double,
+        stack02: Double,
+        stack03: Double,
+        stack04: Double,
+        stack05: Double,
+        stack06: Double,
+        stack07: Double,
+        stack08: Double,
+        stack09: Double,
+        epsilon: Double,
+        decimalPlaces: Double,
+        numberFormat: NumberFormat
+    ) {
+        calcDao.insertZuper(
+            epoch,
+            pad,
+            depth,
+            stack00,
+            stack01,
+            stack02,
+            stack03,
+            stack04,
+            stack05,
+            stack06,
+            stack07,
+            stack08,
+            stack09,
+            epsilon,
+            decimalPlaces,
+            numberFormat
+        )
+    }
+
+    @WorkerThread
+    suspend fun updateZuper(
+        epoch: Int,
+        pad: String,
+        depth: Int,
+        stack00: Double,
+        stack01: Double,
+        stack02: Double,
+        stack03: Double,
+        stack04: Double,
+        stack05: Double,
+        stack06: Double,
+        stack07: Double,
+        stack08: Double,
+        stack09: Double,
+        epsilon: Double,
+        decimalPlaces: Double,
+        numberFormat: NumberFormat
+    ) {
+        calcDao.updateZuper(
+            epoch,
+            pad,
+            depth,
+            stack00,
+            stack01,
+            stack02,
+            stack03,
+            stack04,
+            stack05,
+            stack06,
+            stack07,
+            stack08,
+            stack09,
+            epsilon,
+            decimalPlaces,
+            numberFormat
+        )
+    }
+}
+
+class CalcViewModelFactory(private val repository: CalcRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(CalcViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return CalcViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
+    val zuper: LiveData<List<ZuperTable>> = repository.zuper.asLiveData()
+    fun insertZuper(epoch: Int, pad: String, depth: Int, stack00: Double, stack01: Double, stack02: Double, stack03: Double, stack04: Double, stack05: Double,
+                    stack06: Double, stack07: Double, stack08: Double, stack09: Double, epsilon: Double, decimalPlaces: Double, numberFormat: NumberFormat) =
+        viewModelScope.launch {
+            repository.insertZuper(epoch, pad, depth, stack00, stack01, stack02, stack03, stack04, stack05, stack06, stack07, stack08, stack09, epsilon, decimalPlaces, numberFormat)
+        }
+    fun updateZuper(epoch: Int, pad: String, depth: Int, stack00: Double, stack01: Double, stack02: Double, stack03: Double, stack04: Double, stack05: Double,
+                    stack06: Double, stack07: Double, stack08: Double, stack09: Double, epsilon: Double, decimalPlaces: Double, numberFormat: NumberFormat) =
+        viewModelScope.launch {
+            repository.updateZuper(epoch, pad, depth, stack00, stack01, stack02, stack03, stack04, stack05, stack06, stack07, stack08, stack09, epsilon, decimalPlaces, numberFormat)
+        }
+}
+
+/*
+@Entity
 data class PadTable(
     @PrimaryKey val uid: Int,
     @ColumnInfo(name = "epoch") val epoch: Int,
@@ -172,3 +392,4 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         repository.updateFormatParameters(epoch, epsilon, decimalPlaces, numberFormat)
     }
 }
+*/
