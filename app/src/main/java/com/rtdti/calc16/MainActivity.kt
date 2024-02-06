@@ -56,7 +56,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TheScaffold(calc: Calc) { // Needed to show snackbar
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val viewModel: CalcViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    coroutineScope.launch {// FIXME: LaunchedEffect instead?
+        viewModel.insertZuper(Zuper(0, 1, calc.pad, calc.stack, calc.formatParameters))
+        calc.debugString.value = viewModel.zuperState.value.zuperList.size.toString()+"ha ha ha"
+    }
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { innerPadding ->
         Calc16Theme {
             Surface(modifier = Modifier.fillMaxSize(),

@@ -150,6 +150,9 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
                 started = SharingStarted.WhileSubscribed(5000L),
                 initialValue = CalcState()
             )
+    suspend fun insertZuper(zuper: Zuper) {
+        repository.insertZuper(zuper)
+    }
 }
 
 data class CalcState(val zuperList: List<Zuper> = listOf())
