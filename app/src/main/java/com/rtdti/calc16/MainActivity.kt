@@ -71,10 +71,16 @@ fun TheScaffold(calc: Calc) { // Needed to show snackbar
                         ShowStack(calc)
                     }
                     KeyPad(calc, snackbarHostState)
+                    ShowDebug(calc)
                 }
             }
         }
     }
+}
+
+@Composable
+fun ShowDebug(calc: Calc) {
+    Text(calc.debugString.value)
 }
 
 @Composable

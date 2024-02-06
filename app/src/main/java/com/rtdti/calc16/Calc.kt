@@ -197,6 +197,7 @@ class Pad {
 }
 
 class Calc() {
+    val debugString = mutableStateOf("")
     val stack = Stack()
     val pad = Pad()
     val formatParameters = FormatParameters()
