@@ -259,10 +259,10 @@ fun KeyPad(calc: Calc, snackbarHostState: SnackbarHostState) {
         ) {
             fun noMoreUndos() { coroutineScope.launch { snackbarHostState.showSnackbar("No More Undos")} }
             KeyButton(text = "⤺", { if (calc.undoRestore()) noMoreUndos() }, Keytype.CONTROL)
-            KeyButton(text = " ", { calc.push(calc.formatParameters.epsilon.value) }, Keytype.BINOP)
+            KeyButton(text = " ", { calc.pushConstant(calc.formatParameters.epsilon.value) }, Keytype.BINOP)
             KeyButton(text = "→ϵ", { calc.pop1op({ e -> calc.formatParameters.epsilon.value = e}) }, Keytype.UNOP)
             KeyButton(text = "→.", { calc.pop1op({ d -> calc.formatParameters.decimalPlaces.value = d.toInt()}) }, Keytype.UNOP)
-            KeyButton(text = " ", { calc.push(calc.formatParameters.decimalPlaces.value.toDouble()) }, Keytype.BINOP)
+            KeyButton(text = " ", { calc.pushConstant(calc.formatParameters.decimalPlaces.value.toDouble()) }, Keytype.BINOP)
             KeyButton(text = "◀", { calc.backspaceOrDrop() }, Keytype.CONTROL)
         }
         Row(
@@ -285,7 +285,7 @@ fun KeyPad(calc: Calc, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "⎡x⎤", { calc.unop({ a -> Math.ceil(a)}) }, Keytype.UNOP)
             KeyButton(text = "gcd", { calc.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
             KeyButton(text = "lcm", { calc.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = " ", { calc.push(calc.stack.depthGet().toDouble()) }, Keytype.BINOP)
+            KeyButton(text = " ", { calc.pushConstant(calc.stack.depthGet().toDouble()) }, Keytype.BINOP)
         }
         Row(
             modifier = rowModifier,
@@ -362,7 +362,7 @@ fun KeyPad(calc: Calc, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "3", { calc.padAppend("3") }, Keytype.ENTRY)
             KeyButton(text = "−", { calc.binop({ a, b -> a-b}) }, Keytype.BINOP)
             KeyButton(text = "±", { calc.unop({ a -> -a}) }, Keytype.UNOP)
-            KeyButton(text = "π", { calc.push(Math.PI) }, Keytype.ENTRY)
+            KeyButton(text = "π", { calc.pushConstant(Math.PI) }, Keytype.ENTRY)
         }
         Row(
             modifier = rowModifier,

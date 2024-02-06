@@ -12,16 +12,10 @@ class FormatParameters() {
     val decimalPlaces = mutableStateOf(2)
     val superscriptFontSizeInt = mutableStateOf(0)
     val numberFormat = mutableStateOf(NumberFormat.FLOAT)
-    fun copy(): FormatParameters {
-        val newFormatParameters = FormatParameters()
-        newFormatParameters.set(this)
-        return newFormatParameters
-    }
-    fun set(other: FormatParameters) {
-        epsilon.value = other.epsilon.value
-        decimalPlaces.value = other.decimalPlaces.value
-        superscriptFontSizeInt.value = other.superscriptFontSizeInt.value
-        numberFormat.value = other.numberFormat.value
+    fun set(zuperTable: ZuperTable) {
+        epsilon.value = zuperTable.epsilon
+        decimalPlaces.value = zuperTable.decimalPlaces
+        numberFormat.value = NumberFormat.valueOf(zuperTable.numberFormat)
     }
 }
 
@@ -130,15 +124,12 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
 
 class Stack() {
     private val entries = mutableStateListOf<StackEntry>()
-    fun copy(): Stack {
-        val newStack = Stack()
-        newStack.set(this)
-        return newStack
-    }
-    fun set(other: Stack) {
+    fun set(zuperTable: ZuperTable) {
         entries.clear()
-        for (entry in other.entries) {
-            entries.add(entry)
+        val s = arrayOf(zuperTable.stack00,zuperTable.stack01,zuperTable.stack02,zuperTable.stack03,zuperTable.stack04,
+            zuperTable.stack05,zuperTable.stack06,zuperTable.stack07,zuperTable.stack08,zuperTable.stack09)
+        for (i in 0..zuperTable.depth-1) {
+            push(s[i])
         }
     }
     fun entry(depth: Int) : StackEntry {
@@ -165,16 +156,8 @@ class Stack() {
 
 class Pad {
     private val pad = mutableStateOf("")
-    fun copy(): Pad {
-        val newPad = Pad()
-        newPad.set(this)
-        return newPad
-    }
-    fun set(s: String) {
-        pad.value = s
-    }
-    fun set(other: Pad) {
-        pad.value = other.pad.value
+    fun set(zuperTable: ZuperTable) {
+        pad.value = zuperTable.pad
     }
     fun get() : String { return pad.value }
     fun append(str: String) {
@@ -205,16 +188,15 @@ class Calc() {
     fun formatSet(fmt: NumberFormat) { formatParameters.numberFormat.value = fmt }
     fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
     fun undoSave() { // Allocate new space and fill it with copy of current cached state
-        undoManager.save(ZuperTable(0, 1, pad.copy(), stack.copy(), formatParameters.copy()))
+        undoManager.save(ZuperTable(0, 1, pad, stack, formatParameters))
         debugString.value = String.format("Undo+ size=%d", undoManager.history.size)
     }
     fun undoRestore(): Boolean { // Return true if undo stack is empty
         val zt = undoManager.restore()
         zt?.let {
-            val cs = CalcState(zt)
-            stack.set(cs.stack)
-            pad.set(cs.pad)
-            formatParameters.set(cs.formatParameters)
+            pad.set(zt)
+            stack.set(zt)
+            formatParameters.set(zt)
             debugString.value = String.format("Undo- size=%d", undoManager.history.size)
             return false
         }
@@ -222,7 +204,8 @@ class Calc() {
     }
 
     fun padAppend(str: String) { pad.append(str) }
-    private fun padEnter() { // Copy pad to top of stack and clear pad
+
+    private fun impliedEnter() { // Copy pad to top of stack and clear pad
         if (pad.isEmpty()) {
             // Do nothing?
         } else {
@@ -237,6 +220,7 @@ class Calc() {
             }
             stack.push(x)
             pad.clear()
+            undoSave()
         }
     }
     fun backspaceOrDrop() { // Combo backspace and drop
@@ -251,8 +235,7 @@ class Calc() {
     }
     fun enterOrDup() { // Combo enter and dup
         if (!pad.isEmpty()) {
-            padEnter()
-            undoSave()
+            impliedEnter()
         } else {
             if (!stack.isEmpty()) {
                 val a = stack.pop();
@@ -262,28 +245,28 @@ class Calc() {
             }
         }
     }
-    fun push(x: Double) {
-        padEnter()
+    fun pushConstant(x: Double) {
+        impliedEnter()
         stack.push(x)
         undoSave()
     }
     fun swap() {
-        padEnter()
+        impliedEnter()
         if (stack.hasDepth(2)) {
             val b = stack.pop()
             val a = stack.pop()
-            push(b)
-            push(a)
+            stack.push(b)
+            stack.push(a)
             undoSave()
         }
     }
     fun pick(index: Int) {
-        padEnter()
+        impliedEnter()
         stack.pick(index)
         undoSave()
     }
     fun binop(op: (Double, Double) -> Double) {
-        padEnter()
+        impliedEnter()
         if (stack.hasDepth(2)) {
             val b = stack.pop()
             val a = stack.pop()
@@ -291,9 +274,8 @@ class Calc() {
             undoSave()
         }
     }
-
     fun unop(op: (Double) -> Double) {
-        padEnter()
+        impliedEnter()
         if (stack.hasDepth(1)) {
             val a = stack.pop()
             stack.push(op(a))
@@ -301,31 +283,11 @@ class Calc() {
         }
     }
     fun pop1op(op: (Double) -> Unit) {
-        padEnter()
+        impliedEnter()
         if (stack.hasDepth(1)) {
             val a = stack.pop()
             op(a)
             undoSave()
-        }
-    }
-}
-
-data class CalcState(val pad: Pad, val stack: Stack, val formatParameters: FormatParameters) {
-    companion object { // Super-cool way to make a 2nd constructor.  I'll never remember this
-        operator fun invoke(zuperTable: ZuperTable): CalcState {
-            val pad = Pad()
-            pad.set(zuperTable.pad)
-            val stack = Stack()
-            val s = arrayOf(zuperTable.stack00,zuperTable.stack01,zuperTable.stack02,zuperTable.stack03,zuperTable.stack04,
-                            zuperTable.stack05,zuperTable.stack06,zuperTable.stack07,zuperTable.stack08,zuperTable.stack09)
-            for (i in 0..zuperTable.depth-1) {
-                stack.push(s[i])
-            }
-            val formatParameters = FormatParameters()
-            formatParameters.epsilon.value = zuperTable.epsilon
-            formatParameters.decimalPlaces.value = zuperTable.decimalPlaces
-            formatParameters.numberFormat.value = NumberFormat.valueOf(zuperTable.numberFormat)
-            return CalcState(pad, stack, formatParameters)
         }
     }
 }
