@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtdti.calc16.ui.theme.Calc16Theme
 import kotlinx.coroutines.launch
 
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TheScaffold(calc: Calc) { // Needed to show snackbar
     val snackbarHostState = remember { SnackbarHostState() }
+    val viewModel: CalcViewModel = viewModel(factory = AppViewModelProvider.Factory)
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { innerPadding ->
         Calc16Theme {
             Surface(modifier = Modifier.fillMaxSize(),

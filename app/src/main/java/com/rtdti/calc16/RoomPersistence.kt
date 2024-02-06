@@ -1,13 +1,14 @@
 package com.rtdti.calc16
 
+import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.annotation.WorkerThread
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
@@ -20,8 +21,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
-import java.lang.IllegalArgumentException
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlin.math.min
 
 @Entity
@@ -139,6 +142,42 @@ class AppDataContainer(private val context: Context) : AppContainer {
     }
 }
 
+class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
+    val zuperState: StateFlow<CalcState> =
+        repository.fetchAllZupers().map { CalcState(it) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000L),
+                initialValue = CalcState()
+            )
+}
+
+data class CalcState(val zuperList: List<Zuper> = listOf())
+
+object AppViewModelProvider {
+    val Factory = viewModelFactory {
+        initializer {
+            CalcViewModel(/*this.createSavedStateHandle(),*/calc16application().container.calcRepository)
+        }
+    }
+}
+
+fun CreationExtras.calc16application(): Calc16Application { // =
+    val foobar = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+    foobar?.let {
+        Log.i("TAGME", it.toString())
+    }
+    return (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Calc16Application)
+}
+
+class Calc16Application : Application() {
+    lateinit var container: AppContainer
+
+    override fun onCreate() {
+        super.onCreate()
+        container = AppDataContainer(this)
+    }
+}
 
 /*
 class CalcViewModelFactory(private val repository: OfflineCalcRepository) : ViewModelProvider.Factory {
