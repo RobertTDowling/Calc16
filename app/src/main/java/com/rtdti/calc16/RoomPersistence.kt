@@ -38,7 +38,24 @@ data class ZuperTable(
     @ColumnInfo(name = "epsilon") val epsilon: Double,
     @ColumnInfo(name = "decimalPlaces") val decimalPlaces: Int,
     @ColumnInfo(name = "numberFormat") val numberFormat: String
-)
+) {
+    // constructor(uid: Int, epoch: Int, pad: Pad, stack: Stack, numberFormat: NumberFormat):
+    companion object { // Super-cool way to make a 2nd constructor.  I'll never remember this
+        operator fun invoke(uid: Int, epoch: Int, pad: Pad, stack: Stack, formatParameters: FormatParameters): ZuperTable {
+            val depth = stack.depthGet()
+            val s = Array<Double>(10) { 0.0 }
+            for (i in 0..depth-1) {
+                s[i] = stack.entry(i).value
+            }
+            return ZuperTable(uid, epoch, pad.get(), depth,
+                            s[0], s[1], s[2], s[3], s[4],
+                            s[5], s[6], s[7], s[8], s[9],
+                            formatParameters.epsilon.value,
+                            formatParameters.decimalPlaces.value,
+                            formatParameters.numberFormat.value.toString())
+        }
+    }
+}
 
 @Dao
 interface CalcDao {

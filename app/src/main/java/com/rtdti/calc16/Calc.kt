@@ -171,6 +171,9 @@ class Pad {
         newPad.set(this)
         return newPad
     }
+    fun set(s: String) {
+        pad.value = s
+    }
     fun set(other: Pad) {
         pad.value = other.pad.value
     }
@@ -202,11 +205,12 @@ class Calc() {
     fun formatSet(fmt: NumberFormat) { formatParameters.numberFormat.value = fmt }
     fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
     fun undoSave() {
-        undoManager.save(CalcState(stack.copy(), pad.copy(), formatParameters.copy()))
+        undoManager.save(ZuperTable(0, 1, pad.copy(), stack.copy(), formatParameters.copy()))
     }
     fun undoRestore(): Boolean { // Return true if undo stack is empty
-        val cs = undoManager.restore()
-        cs?.let {
+        val zt = undoManager.restore()
+        zt?.let {
+            val cs = CalcState(zt)
             stack.set(cs.stack)
             pad.set(cs.pad)
             formatParameters.set(cs.formatParameters)
@@ -298,21 +302,39 @@ class Calc() {
     }
 }
 
-data class CalcState(val stack: Stack, val pad: Pad, val formatParameters: FormatParameters)
+data class CalcState(val pad: Pad, val stack: Stack, val formatParameters: FormatParameters) {
+    companion object { // Super-cool way to make a 2nd constructor.  I'll never remember this
+        operator fun invoke(zuperTable: ZuperTable): CalcState {
+            val pad = Pad()
+            pad.set(zuperTable.pad)
+            val stack = Stack()
+            val s = arrayOf(zuperTable.stack00,zuperTable.stack01,zuperTable.stack02,zuperTable.stack03,zuperTable.stack04,
+                            zuperTable.stack05,zuperTable.stack06,zuperTable.stack07,zuperTable.stack08,zuperTable.stack09)
+            for (i in 0..zuperTable.depth-1) {
+                stack.push(s[i])
+            }
+            val formatParameters = FormatParameters()
+            formatParameters.epsilon.value = zuperTable.epsilon
+            formatParameters.decimalPlaces.value = zuperTable.decimalPlaces
+            formatParameters.numberFormat.value = NumberFormat.valueOf(zuperTable.numberFormat)
+            return CalcState(pad, stack, formatParameters)
+        }
+    }
+}
 
 class UndoManager {
     val TAG="UndoManager"
     val MAX_DEPTH = 20
-    val history = mutableListOf<CalcState>()
-    fun save(calcState: CalcState) {
+    val history = mutableListOf<ZuperTable>()
+    fun save(zuperTable: ZuperTable) {
         Log.i(TAG, String.format("history add[%d]", history.size))
-        history.add(calcState)
+        history.add(zuperTable)
         if (history.lastIndex == MAX_DEPTH) {
             Log.i(TAG, "history add: trimmed last")
             history.removeAt(0)
         }
     }
-    fun restore() : CalcState? {
+    fun restore() : ZuperTable? {
         if (history.isEmpty()) {
             Log.i(TAG, "history restore: empty")
             return null
