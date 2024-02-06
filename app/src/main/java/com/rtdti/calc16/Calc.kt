@@ -1,6 +1,5 @@
 package com.rtdti.calc16
 
-import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.AnnotatedString
@@ -205,8 +204,9 @@ class Calc() {
     fun formatGet() : NumberFormat { return formatParameters.numberFormat.value }
     fun formatSet(fmt: NumberFormat) { formatParameters.numberFormat.value = fmt }
     fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
-    fun undoSave() {
+    fun undoSave() { // Allocate new space and fill it with copy of current cached state
         undoManager.save(ZuperTable(0, 1, pad.copy(), stack.copy(), formatParameters.copy()))
+        debugString.value = String.format("Undo+ size=%d", undoManager.history.size)
     }
     fun undoRestore(): Boolean { // Return true if undo stack is empty
         val zt = undoManager.restore()
@@ -215,6 +215,7 @@ class Calc() {
             stack.set(cs.stack)
             pad.set(cs.pad)
             formatParameters.set(cs.formatParameters)
+            debugString.value = String.format("Undo- size=%d", undoManager.history.size)
             return false
         }
         return true
@@ -222,7 +223,6 @@ class Calc() {
 
     fun padAppend(str: String) { pad.append(str) }
     private fun padEnter() { // Copy pad to top of stack and clear pad
-        undoSave()
         if (pad.isEmpty()) {
             // Do nothing?
         } else {
@@ -241,9 +241,9 @@ class Calc() {
     }
     fun backspaceOrDrop() { // Combo backspace and drop
         if (pad.isEmpty()) {
-            undoSave()
             if (!stack.isEmpty()) {
                 stack.pop()
+                undoSave()
             }
         } else {
             pad.backspace()
@@ -252,18 +252,20 @@ class Calc() {
     fun enterOrDup() { // Combo enter and dup
         if (!pad.isEmpty()) {
             padEnter()
+            undoSave()
         } else {
             if (!stack.isEmpty()) {
-                undoSave()
                 val a = stack.pop();
                 stack.push(a)
                 stack.push(a)
+                undoSave()
             }
         }
     }
     fun push(x: Double) {
         padEnter()
         stack.push(x)
+        undoSave()
     }
     fun swap() {
         padEnter()
@@ -272,11 +274,13 @@ class Calc() {
             val a = stack.pop()
             push(b)
             push(a)
+            undoSave()
         }
     }
     fun pick(index: Int) {
         padEnter()
         stack.pick(index)
+        undoSave()
     }
     fun binop(op: (Double, Double) -> Double) {
         padEnter()
@@ -284,6 +288,7 @@ class Calc() {
             val b = stack.pop()
             val a = stack.pop()
             stack.push(op(a, b))
+            undoSave()
         }
     }
 
@@ -292,6 +297,7 @@ class Calc() {
         if (stack.hasDepth(1)) {
             val a = stack.pop()
             stack.push(op(a))
+            undoSave()
         }
     }
     fun pop1op(op: (Double) -> Unit) {
@@ -299,6 +305,7 @@ class Calc() {
         if (stack.hasDepth(1)) {
             val a = stack.pop()
             op(a)
+            undoSave()
         }
     }
 }
@@ -328,19 +335,21 @@ class UndoManager {
     val MAX_DEPTH = 20
     val history = mutableListOf<ZuperTable>()
     fun save(zuperTable: ZuperTable) {
-        Log.i(TAG, String.format("history add[%d]", history.size))
+        // Log.i(TAG, String.format("history add[%d]", history.size))
         history.add(zuperTable)
         if (history.lastIndex == MAX_DEPTH) {
-            Log.i(TAG, "history add: trimmed last")
+            // Log.i(TAG, "history add: trimmed last")
             history.removeAt(0)
         }
     }
-    fun restore() : ZuperTable? {
-        if (history.isEmpty()) {
-            Log.i(TAG, "history restore: empty")
+    fun restore() : ZuperTable? { // Return null if history is empty
+        // Since we need to return value under top, make sure there are 2
+        if (history.lastIndex < 1) {
+            // Log.i(TAG, "history restore: empty")
             return null
         }
-        Log.i(TAG, String.format("history restore[%d]", history.lastIndex))
-        return history.removeAt(history.lastIndex)
+        // Log.i(TAG, String.format("history restore[%d]", history.lastIndex))
+        history.removeAt(history.lastIndex)
+        return history[history.lastIndex]
     }
 }

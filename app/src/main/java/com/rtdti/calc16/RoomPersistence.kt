@@ -1,6 +1,7 @@
 package com.rtdti.calc16
 
 import android.content.Context
+import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
@@ -18,6 +19,7 @@ import androidx.room.RoomDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.lang.IllegalArgumentException
+import kotlin.math.min
 
 @Entity
 data class ZuperTable(
@@ -42,11 +44,12 @@ data class ZuperTable(
     // constructor(uid: Int, epoch: Int, pad: Pad, stack: Stack, numberFormat: NumberFormat):
     companion object { // Super-cool way to make a 2nd constructor.  I'll never remember this
         operator fun invoke(uid: Int, epoch: Int, pad: Pad, stack: Stack, formatParameters: FormatParameters): ZuperTable {
-            val depth = stack.depthGet()
+            val depth = min(stack.depthGet(), 10)
             val s = Array<Double>(10) { 0.0 }
             for (i in 0..depth-1) {
-                s[i] = stack.entry(i).value
+                s[i] = stack.entry(depth-1-i).value
             }
+            Log.i("Making Z", s[0].toString())
             return ZuperTable(uid, epoch, pad.get(), depth,
                             s[0], s[1], s[2], s[3], s[4],
                             s[5], s[6], s[7], s[8], s[9],

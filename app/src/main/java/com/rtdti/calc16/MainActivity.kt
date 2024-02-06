@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val calc = Calc()
+        calc.undoSave()
         setContent {
             TheScaffold(calc)
         }
