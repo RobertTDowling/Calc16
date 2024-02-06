@@ -12,10 +12,10 @@ class FormatParameters() {
     val decimalPlaces = mutableStateOf(2)
     val superscriptFontSizeInt = mutableStateOf(0)
     val numberFormat = mutableStateOf(NumberFormat.FLOAT)
-    fun set(zuperTable: ZuperTable) {
-        epsilon.value = zuperTable.epsilon
-        decimalPlaces.value = zuperTable.decimalPlaces
-        numberFormat.value = NumberFormat.valueOf(zuperTable.numberFormat)
+    fun set(zuper: Zuper) {
+        epsilon.value = zuper.epsilon
+        decimalPlaces.value = zuper.decimalPlaces
+        numberFormat.value = NumberFormat.valueOf(zuper.numberFormat)
     }
 }
 
@@ -124,11 +124,11 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
 
 class Stack() {
     private val entries = mutableStateListOf<StackEntry>()
-    fun set(zuperTable: ZuperTable) {
+    fun set(zuper: Zuper) {
         entries.clear()
-        val s = arrayOf(zuperTable.stack00,zuperTable.stack01,zuperTable.stack02,zuperTable.stack03,zuperTable.stack04,
-            zuperTable.stack05,zuperTable.stack06,zuperTable.stack07,zuperTable.stack08,zuperTable.stack09)
-        for (i in 0..zuperTable.depth-1) {
+        val s = arrayOf(zuper.stack00,zuper.stack01,zuper.stack02,zuper.stack03,zuper.stack04,
+            zuper.stack05,zuper.stack06,zuper.stack07,zuper.stack08,zuper.stack09)
+        for (i in 0..zuper.depth-1) {
             push(s[i])
         }
     }
@@ -156,8 +156,8 @@ class Stack() {
 
 class Pad {
     private val pad = mutableStateOf("")
-    fun set(zuperTable: ZuperTable) {
-        pad.value = zuperTable.pad
+    fun set(zuper: Zuper) {
+        pad.value = zuper.pad
     }
     fun get() : String { return pad.value }
     fun append(str: String) {
@@ -188,7 +188,7 @@ class Calc() {
     fun formatSet(fmt: NumberFormat) { formatParameters.numberFormat.value = fmt }
     fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
     fun undoSave() { // Allocate new space and fill it with copy of current cached state
-        undoManager.save(ZuperTable(0, 1, pad, stack, formatParameters))
+        undoManager.save(Zuper(0, 1, pad, stack, formatParameters))
         debugString.value = String.format("Undo+ size=%d", undoManager.history.size)
     }
     fun undoRestore(): Boolean { // Return true if undo stack is empty
@@ -295,16 +295,16 @@ class Calc() {
 class UndoManager {
     val TAG="UndoManager"
     val MAX_DEPTH = 20
-    val history = mutableListOf<ZuperTable>()
-    fun save(zuperTable: ZuperTable) {
+    val history = mutableListOf<Zuper>()
+    fun save(zuper: Zuper) {
         // Log.i(TAG, String.format("history add[%d]", history.size))
-        history.add(zuperTable)
+        history.add(zuper)
         if (history.lastIndex == MAX_DEPTH) {
             // Log.i(TAG, "history add: trimmed last")
             history.removeAt(0)
         }
     }
-    fun restore() : ZuperTable? { // Return null if history is empty
+    fun restore() : Zuper? { // Return null if history is empty
         // Since we need to return value under top, make sure there are 2
         if (history.lastIndex < 1) {
             // Log.i(TAG, "history restore: empty")
