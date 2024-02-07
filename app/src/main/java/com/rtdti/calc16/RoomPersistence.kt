@@ -143,6 +143,22 @@ class AppDataContainer(private val context: Context) : AppContainer {
 }
 
 class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
+    val calc = Calc()
+    init {
+        // calc.undoSave()
+    }
+    suspend fun enterOrDup() {
+        if (!calc.pad.isEmpty()) {
+            // FIXME calc.impliedEnter()
+        } else {
+            if (!calc.stack.isEmpty()) {
+                val a = calc.stack.pop();
+                calc.stack.push(a)
+                calc.stack.push(a)
+                repository.insertZuper(Zuper(3, 2, calc.pad, calc.stack, calc.formatParameters))
+            }
+        }
+    }
     val zuperState: StateFlow<CalcState> =
         repository.fetchAllZupers().map { CalcState(it) }
             .stateIn(
@@ -150,9 +166,6 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
                 started = SharingStarted.WhileSubscribed(5000L),
                 initialValue = CalcState()
             )
-    suspend fun insertZuper(zuper: Zuper) {
-        repository.insertZuper(zuper)
-    }
 }
 
 data class CalcState(val zuperList: List<Zuper> = listOf())

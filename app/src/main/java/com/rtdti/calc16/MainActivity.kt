@@ -45,23 +45,17 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val calc = Calc()
-        calc.undoSave()
         setContent {
-            TheScaffold(calc)
+            val viewModel: CalcViewModel = viewModel(factory = AppViewModelProvider.Factory)
+            TheScaffold(viewModel)
         }
     }
 }
 
 @Composable
-fun TheScaffold(calc: Calc) { // Needed to show snackbar
+fun TheScaffold(viewModel: CalcViewModel) { // Needed to show snackbar
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-    val viewModel: CalcViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    coroutineScope.launch {// FIXME: LaunchedEffect instead?
-        viewModel.insertZuper(Zuper(0, 1, calc.pad, calc.stack, calc.formatParameters))
-        calc.debugString.value = viewModel.zuperState.value.zuperList.size.toString()+"ha ha ha"
-    }
+    val calc = viewModel.calc
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { innerPadding ->
         Calc16Theme {
             Surface(modifier = Modifier.fillMaxSize(),
@@ -78,7 +72,7 @@ fun TheScaffold(calc: Calc) { // Needed to show snackbar
                     ) {
                         ShowStack(calc)
                     }
-                    KeyPad(calc, snackbarHostState)
+                    KeyPad(viewModel, snackbarHostState)
                     ShowDebug(calc)
                 }
             }
@@ -253,8 +247,15 @@ fun ModalKeyButton(text: String, newFormat: NumberFormat, calc: Calc, crowded: B
 }
 
 @Composable
-fun KeyPad(calc: Calc, snackbarHostState: SnackbarHostState) {
+fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
     val coroutineScope = rememberCoroutineScope()
+    val calc = viewModel.calc
+    /*
+    coroutineScope.launch {// FIXME: LaunchedEffect instead?
+        viewModel.insertZuper(Zuper(0, 1, calc.pad, calc.stack, calc.formatParameters))
+        calc.debugString.value = viewModel.zuperState.value.zuperList.size.toString()+"ha ha ha"
+    }
+     */
     Column (
         modifier = colModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -375,7 +376,7 @@ fun KeyPad(calc: Calc, snackbarHostState: SnackbarHostState) {
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = "▲", { calc.enterOrDup() }, Keytype.CONTROL)
+            KeyButton(text = "▲", { coroutineScope.launch { viewModel.enterOrDup() } }, Keytype.CONTROL)
             KeyButton(text = "0", { calc.padAppend("0") }, Keytype.ENTRY)
             KeyButton(text = ".", { calc.padAppend(".") }, Keytype.ENTRY)
             KeyButton(text = "+", { calc.binop({ a, b -> a+b}) }, Keytype.BINOP)
