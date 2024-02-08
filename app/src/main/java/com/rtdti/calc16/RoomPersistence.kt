@@ -20,12 +20,24 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.min
+
+@Entity
+data class PadTable(
+    @PrimaryKey(autoGenerate = true) val rowid: Int = 0,
+    @ColumnInfo(name = "pad") val pad: String,
+)
 
 @Entity
 data class Zuper(
@@ -85,9 +97,18 @@ interface CalcDao {
 
     @Update
     suspend fun updateZuper(zuper: Zuper)
+
+    @Query("SELECT pad from PadTable")
+    fun getPad(): Flow<String>
+
+    @Query("DELETE from PadTable")
+    fun clearPad()
+
+    @Insert
+    suspend fun setPad(padTable: PadTable)
 }
 
-@Database(entities = arrayOf(Zuper::class),
+@Database(entities = arrayOf(Zuper::class, PadTable::class),
     version = 1, exportSchema = false)
 abstract class CalcDatabase : RoomDatabase() {
     abstract fun calcDao(): CalcDao
@@ -120,6 +141,9 @@ interface CalcRepository {
     suspend fun insertZuper(zuper: Zuper)
     suspend fun updateZuper(zuper: Zuper)
     suspend fun deleteZuper(zuper: Zuper)
+    fun getPad(): Flow<String?>
+    suspend fun clearPad()
+    suspend fun setPad(pad: String)
 }
 
 class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
@@ -129,6 +153,9 @@ class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
     override suspend fun insertZuper(zuper: Zuper) = calcDao.insertZuper(zuper)
     override suspend fun updateZuper(zuper: Zuper) = calcDao.updateZuper(zuper)
     override suspend fun deleteZuper(zuper: Zuper) = calcDao.deleteZuper(zuper)
+    override fun getPad(): Flow<String> = calcDao.getPad()
+    override suspend fun clearPad() = calcDao.clearPad()
+    override suspend fun setPad(pad: String) = calcDao.setPad(PadTable(0, pad))
 }
 
 interface AppContainer {
@@ -144,31 +171,44 @@ class AppDataContainer(private val context: Context) : AppContainer {
 
 class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     val calc = Calc()
-    init {
-        // calc.undoSave()
+    //private val _padState0 = MutableStateFlow(PadState(""))
+    //val padState0 = _padState0.asStateFlow()
+    val padState = repository.getPad().map { PadState(it?:"") }
+        .stateIn(scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(500L),
+            initialValue = PadState("")
+        )
+    fun padIsEmpty() = padState.value.isEmpty()
+    fun padAppend(char: String) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            repository.clearPad()
+            repository.setPad(padState.value.pad.plus(char))
+        }
     }
-    suspend fun enterOrDup() {
-        if (!calc.pad.isEmpty()) {
-            // FIXME calc.impliedEnter()
-        } else {
-            if (!calc.stack.isEmpty()) {
-                val a = calc.stack.pop();
-                calc.stack.push(a)
-                calc.stack.push(a)
-                repository.insertZuper(Zuper(3, 2, calc.pad, calc.stack, calc.formatParameters))
+    fun padBackspace() = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            if (!padIsEmpty()) {
+                repository.clearPad()
+                repository.setPad(padState.value.pad.substring(0, padState.value.pad.length - 1))
             }
         }
     }
-    val zuperState: StateFlow<CalcState> =
-        repository.fetchAllZupers().map { CalcState(it) }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000L),
-                initialValue = CalcState()
-            )
-}
+    fun backspaceOrDrop() {
+        if (padIsEmpty()) {
+            if (!calc.stack.isEmpty()) {
+                calc.stack.pop()
+                calc.undoSave()
+            }
+        } else {
+            padBackspace()
+        }
 
+    }
+}
+data class PadState(val pad: String)
 data class CalcState(val zuperList: List<Zuper> = listOf())
+
+fun PadState.isEmpty() : Boolean = pad.isEmpty()
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
