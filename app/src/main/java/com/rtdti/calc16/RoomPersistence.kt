@@ -255,6 +255,10 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
     private suspend fun backupStack(workingStack: WorkingStack) {
         val epoch = stackLastEpoch.value + 1
+        val firstEpoch = stackFirstEpoch.value
+        if (firstEpoch + 10 < epoch) {
+            repository.rollbackStack(firstEpoch)
+        }
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }
 
