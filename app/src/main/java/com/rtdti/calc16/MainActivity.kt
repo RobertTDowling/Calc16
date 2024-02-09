@@ -104,7 +104,7 @@ fun ShowStack(viewModel: CalcViewModel) {
             .fillMaxSize()
     ) {
         for (index in stack.size-1 downTo 0) {
-            val text = AnnotatedString(String.format("%d: ", index)) + formatter.format(stack[index], viewModel.formatParameters)
+            val text = formatter.format(stack[index], viewModel.formatParameters)
             item {
                 ShowStackString(text, index, viewModel)
             }
