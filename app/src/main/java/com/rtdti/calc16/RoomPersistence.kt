@@ -218,8 +218,6 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         // Sanity check
         if (!filteredStl.isEmpty() && (filteredStl.first().depth > 0 || filteredStl.last().depth != filteredStl.size - 1)) {
             // we are in trouble
-            // FIXME some how signal no state to update
-            // Log.i("RoomPersistence", "Invalid stack in DB, missing entries")
             debugString.value = String.format("E: %d..%d Invalid", firstEpoch, lastEpoch, filteredStl.size)
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {
@@ -229,6 +227,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             return null
         }
         stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
+        stackFirstEpoch.value = firstEpoch
         debugString.value = String.format("E: %d..%d D: %d", firstEpoch, lastEpoch, filteredStl.size)
         return StackState(filteredStl.map { it.value })
     }
@@ -242,8 +241,8 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun stackDepth() : Int = stackState.value.stack.size
     fun stackRollBack() : Boolean {
-        val epoch = stackLastEpoch.value - 1
-        if (epoch > 0) { // FIXME
+        val epoch = stackLastEpoch.value
+        if (epoch > stackFirstEpoch.value) {
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {
                     repository.rollbackStack(epoch)
