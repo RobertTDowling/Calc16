@@ -64,6 +64,9 @@ interface CalcDao {
     @Insert
     suspend fun insertStack(stackTable: StackTable)
 
+    @Query("delete from StackTable")
+    suspend fun clearStack()
+
     @Query("DELETE FROM StackTable where epoch = :epoch")
     fun rollbackStack(epoch: Int)
 
@@ -113,6 +116,7 @@ interface CalcRepository {
     fun getPad(): Flow<String?>
     suspend fun insertOrUpdatePad(pad: String)
     fun getStack() : Flow<List<StackTable>>
+    suspend fun clearStack()
     suspend fun insertStack(stackTable: StackTable)
     fun rollbackStack(epoch: Int)
     suspend fun insertFullStack(lst: List<StackTable>)
@@ -123,6 +127,7 @@ class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
     override fun getPad(): Flow<String> = calcDao.getPad()
     override suspend fun insertOrUpdatePad(pad: String) = calcDao.insertOrUpdatePad(0, pad)
     override fun getStack() = calcDao.getStack()
+    override suspend fun clearStack() = calcDao.clearStack()
     override suspend fun insertStack(stackTable: StackTable) = calcDao.insertStack(stackTable)
     override fun rollbackStack(epoch: Int) = calcDao.rollbackStack(epoch)
     override suspend fun insertFullStack(lst: List<StackTable>) = calcDao.insertFullStack(lst)
@@ -212,6 +217,11 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             // FIXME some how signal no state to update
             // Log.i("RoomPersistence", "Invalid stack in DB, missing entries")
             debugString.value = String.format("E: %d..%d Invalid", firstEpoch, lastEpoch, filteredStl.size)
+            viewModelScope.launch {
+                withContext(Dispatchers.IO) {
+                    repository.clearStack()
+                }
+            }
             return null
         }
         stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
@@ -242,17 +252,10 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
     private suspend fun backupStack(workingStack: WorkingStack) {
         val epoch = stackLastEpoch.value + 1
-        //for ((depth, ss) in workingStack.stack.withIndex()) {
-        //    repository.insertStack(StackTable(0, epoch, depth, ss))
-        //}
-        // Save stack in reverse order to avoid false displays of partial stacks
-        // for (depth in workingStack.stack.lastIndex downTo 0) {
-        //    repository.insertStack(StackTable(0, epoch, depth, workingStack.stack[depth]))
-        //}
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }
 
-    private suspend fun doEnter() {
+    private suspend fun doEnter(): WorkingStack {
         // Copy pad to top of stack and clear pad
         val x = try {
             //if (formatGet() == NumberFormat.HEX) {
@@ -269,12 +272,16 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         // backupStack(workingStack)
         val epoch = stackLastEpoch.value + 1
         repository.insertFullStackClearPad(workingStack.asListStackTable(epoch))
+        stackLastEpoch.value = epoch
+        return workingStack
     }
-    private suspend fun doImpliedEnter() {
+    private suspend fun doImpliedEnter(): WorkingStack {
         // Only doEnter if pad isn't empty
         if (!padIsEmpty()) {
-            doEnter()
+            return doEnter()
         }
+        val workingStack = WorkingStack(stackState.value)
+        return workingStack
     }
 
     private fun Enter() = viewModelScope.launch {
@@ -285,8 +292,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun pushConstant(x: Double) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
-            doImpliedEnter()
-            val workingStack = WorkingStack(stackState.value)
+            val workingStack = doImpliedEnter()
             workingStack.push(x)
             backupStack(workingStack)
         }
@@ -294,8 +300,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun swap() = viewModelScope.launch {
         withContext(Dispatchers.IO) {
-            doImpliedEnter()
-            val workingStack = WorkingStack(stackState.value)
+            val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(2)) {
                 val b = workingStack.pop()
                 val a = workingStack.pop()
@@ -308,16 +313,14 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun pick(index: Int) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
-            doImpliedEnter()
-            val workingStack = WorkingStack(stackState.value)
+            val workingStack = doImpliedEnter()
             workingStack.pick(index)
             backupStack(workingStack)
         }
     }
     fun binop(op: (Double, Double) -> Double) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
-            doImpliedEnter()
-            val workingStack = WorkingStack(stackState.value)
+            val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(2)) {
                 val b = workingStack.pop()
                 val a = workingStack.pop()
@@ -329,8 +332,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun unop(op: (Double) -> Double) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
-            doImpliedEnter()
-            val workingStack = WorkingStack(stackState.value)
+            val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(2)) {
                 val a = workingStack.pop()
                 workingStack.push(op(a))
@@ -341,8 +343,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun pop1op(op: (Double) -> Unit) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
-            doImpliedEnter()
-            val workingStack = WorkingStack(stackState.value)
+            val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(2)) {
                 val a = workingStack.pop()
                 backupStack(workingStack)
@@ -368,7 +369,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             Enter()
         } else {
             if (!stackState.value.stack.isEmpty()) {
-                val a = stackState.value.stack.last();
+                val a = stackState.value.stack.first();
                 pushConstant(a)
             }
         }
