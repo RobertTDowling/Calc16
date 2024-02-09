@@ -89,16 +89,12 @@ fun ShowDebug(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowStack(viewModel: CalcViewModel) {
-    var counter = remember { mutableStateOf (0) }
-    counter.value += 1
-    viewModel.debugString.value = counter.toString()
     val pad by viewModel.padState.collectAsState()
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val stackState by viewModel.stackState.collectAsState()
     val stack = stackState.stack
     val formatter = viewModel.formatter()
-    val stackLastEpoch = viewModel.stackLastEpoch.collectAsState().value
     viewModel.formatParameters.superscriptFontSizeInt.value = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
     LazyColumn(
         state = lazyListState,
