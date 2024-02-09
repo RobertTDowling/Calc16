@@ -262,11 +262,11 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     private suspend fun doEnter(): WorkingStack {
         // Copy pad to top of stack and clear pad
         val x = try {
-            //if (formatGet() == NumberFormat.HEX) {
-            //    padState.value.pad.toLong(radix = 16).toDouble()
-            //} else {
-            padState.value.pad.toDouble()
-            //}
+            if (formatGet() == NumberFormat.HEX) {
+                padState.value.pad.toLong(radix = 16).toDouble()
+            } else {
+                padState.value.pad.toDouble()
+            }
         } catch (e: Exception) {
             0.0
         }
