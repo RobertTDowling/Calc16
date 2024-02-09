@@ -153,6 +153,9 @@ fun PadState.isEmpty() : Boolean = pad.isEmpty()
 class WorkingStack(stackState: StackState) {
     val stack: MutableList<Double> = stackState.stack.toMutableList()
     fun asListStackTable(epoch: Int) : List<StackTable> {
+        if (stack.isEmpty()) {
+            return listOf(StackTable(0, epoch, -1, 0.0))
+        }
         return stack.mapIndexed { depth, value -> StackTable(0, epoch, depth, value)}
     }
     fun hasDepth(depth: Int) = stack.size >= depth
@@ -211,9 +214,10 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         val firstEpoch = sortedStl.minOf { it.epoch }
         val lastEpoch = sortedStl.maxOf { it.epoch }
         // Filter for only lastEpoch
-        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }
+        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }.filter { it.depth >= 0 }
         // Sanity check
-        if (filteredStl.first().depth > 0 || filteredStl.last().depth != filteredStl.size - 1) { // we are in trouble
+        if (!filteredStl.isEmpty() && (filteredStl.first().depth > 0 || filteredStl.last().depth != filteredStl.size - 1)) {
+            // we are in trouble
             // FIXME some how signal no state to update
             // Log.i("RoomPersistence", "Invalid stack in DB, missing entries")
             debugString.value = String.format("E: %d..%d Invalid", firstEpoch, lastEpoch, filteredStl.size)
