@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -88,6 +89,9 @@ fun ShowDebug(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowStack(viewModel: CalcViewModel) {
+    var counter = remember { mutableStateOf (0) }
+    counter.value += 1
+    viewModel.debugString.value = counter.toString()
     val pad by viewModel.padState.collectAsState()
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -104,7 +108,7 @@ fun ShowStack(viewModel: CalcViewModel) {
             .fillMaxSize()
     ) {
         for (index in stack.size-1 downTo 0) {
-            val text = formatter.format(stack[index], viewModel.formatParameters)
+            val text = AnnotatedString(String.format("%d: ", index)) + formatter.format(stack[index], viewModel.formatParameters)
             item {
                 ShowStackString(text, index, viewModel)
             }
