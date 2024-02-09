@@ -333,7 +333,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     fun unop(op: (Double) -> Double) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
             val workingStack = doImpliedEnter()
-            if (workingStack.hasDepth(2)) {
+            if (workingStack.hasDepth(1)) {
                 val a = workingStack.pop()
                 workingStack.push(op(a))
                 backupStack(workingStack)
@@ -344,8 +344,9 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     fun pop1op(op: (Double) -> Unit) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
             val workingStack = doImpliedEnter()
-            if (workingStack.hasDepth(2)) {
+            if (workingStack.hasDepth(1)) {
                 val a = workingStack.pop()
+                op(a)
                 backupStack(workingStack)
             }
         }
