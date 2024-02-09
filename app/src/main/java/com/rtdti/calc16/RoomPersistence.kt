@@ -3,6 +3,8 @@ package com.rtdti.calc16
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,26 +14,20 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
-import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.Update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.min
 
 @Entity
 data class PadTable(
@@ -40,63 +36,15 @@ data class PadTable(
 )
 
 @Entity
-data class Zuper(
-    @PrimaryKey(autoGenerate = true) val uid: Int = 0,
+data class StackTable(
+    @PrimaryKey(autoGenerate = true) val rowid: Int = 0,
     @ColumnInfo(name = "epoch") val epoch: Int,
-    @ColumnInfo(name = "pad") val pad: String,
     @ColumnInfo(name = "depth") val depth: Int,
-    @ColumnInfo(name = "stack00") val stack00: Double,
-    @ColumnInfo(name = "stack01") val stack01: Double,
-    @ColumnInfo(name = "stack02") val stack02: Double,
-    @ColumnInfo(name = "stack03") val stack03: Double,
-    @ColumnInfo(name = "stack04") val stack04: Double,
-    @ColumnInfo(name = "stack05") val stack05: Double,
-    @ColumnInfo(name = "stack06") val stack06: Double,
-    @ColumnInfo(name = "stack07") val stack07: Double,
-    @ColumnInfo(name = "stack08") val stack08: Double,
-    @ColumnInfo(name = "stack09") val stack09: Double,
-    @ColumnInfo(name = "epsilon") val epsilon: Double,
-    @ColumnInfo(name = "decimalPlaces") val decimalPlaces: Int,
-    @ColumnInfo(name = "numberFormat") val numberFormat: String
-) {
-    // constructor(uid: Int, epoch: Int, pad: Pad, stack: Stack, numberFormat: NumberFormat):
-    companion object { // Super-cool way to make a 2nd constructor.  I'll never remember this
-        operator fun invoke(uid: Int, epoch: Int, pad: Pad, stack: Stack, formatParameters: FormatParameters): Zuper {
-            val depth = min(stack.depthGet(), 10)
-            val s = Array<Double>(10) { 0.0 }
-            for (i in 0..depth-1) {
-                s[i] = stack.entry(depth-1-i).value
-            }
-            Log.i("Making Z", s[0].toString())
-            return Zuper(uid, epoch, pad.get(), depth,
-                            s[0], s[1], s[2], s[3], s[4],
-                            s[5], s[6], s[7], s[8], s[9],
-                            formatParameters.epsilon.value,
-                            formatParameters.decimalPlaces.value,
-                            formatParameters.numberFormat.value.toString())
-        }
-    }
-}
+    @ColumnInfo(name = "value") val value: Double,
+)
 
 @Dao
 interface CalcDao {
-    @Query("SELECT * from Zuper")
-    fun fetchAllZupers(): Flow<List<Zuper>>
-
-    @Query("DELETE from Zuper")
-    suspend fun deleteAllZupers()
-
-    @Query("SELECT * from Zuper where epoch = :epoch")
-    fun fetchZuper(epoch: Int): Flow<Zuper?>
-
-    @Insert
-    suspend fun insertZuper(zuper: Zuper)
-
-    @Delete
-    suspend fun deleteZuper(zuper: Zuper)
-
-    @Update
-    suspend fun updateZuper(zuper: Zuper)
 
     @Query("SELECT pad from PadTable")
     fun getPad(): Flow<String>
@@ -106,9 +54,24 @@ interface CalcDao {
 
     @Insert
     suspend fun setPad(padTable: PadTable)
+
+    @Query("SELECT max(epoch) FROM StackTable")
+    fun getLastEpoch(): Flow<Int>
+
+    @Query("SELECT * from StackTable where epoch = :epoch")
+    fun getStackAtEpoch(epoch: Int) : Flow<List<StackTable>>
+
+    @Query("SELECT * from StackTable where epoch = (SELECT max(epoch) FROM StackTable)")
+    fun getStackAtLastEpoch() : Flow<List<StackTable>>
+
+    @Insert
+    suspend fun insertStack(stackTable: StackTable)
+
+    @Query("DELETE FROM StackTable where epoch = :epoch")
+    fun rollbackStack(epoch: Int)
 }
 
-@Database(entities = arrayOf(Zuper::class, PadTable::class),
+@Database(entities = arrayOf(PadTable::class, StackTable::class),
     version = 1, exportSchema = false)
 abstract class CalcDatabase : RoomDatabase() {
     abstract fun calcDao(): CalcDao
@@ -135,27 +98,25 @@ abstract class CalcDatabase : RoomDatabase() {
 }
 
 interface CalcRepository {
-    fun fetchAllZupers(): Flow<List<Zuper>>
-    suspend fun deleteAllZupers()
-    fun fetchZuper(epoch: Int): Flow<Zuper?>
-    suspend fun insertZuper(zuper: Zuper)
-    suspend fun updateZuper(zuper: Zuper)
-    suspend fun deleteZuper(zuper: Zuper)
     fun getPad(): Flow<String?>
     suspend fun clearPad()
     suspend fun setPad(pad: String)
+    fun getLastEpoch(): Flow<Int>
+    fun getStackAtEpoch(epoch: Int) : Flow<List<StackTable>>
+    fun getStackAtLastEpoch() : Flow<List<StackTable>>
+    suspend fun insertStack(stackTable: StackTable)
+    fun rollbackStack(epoch: Int)
 }
 
 class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
-    override fun fetchAllZupers(): Flow<List<Zuper>> = calcDao.fetchAllZupers()
-    override suspend fun deleteAllZupers() = calcDao.deleteAllZupers()
-    override fun fetchZuper(epoch: Int): Flow<Zuper?> = calcDao.fetchZuper(epoch)
-    override suspend fun insertZuper(zuper: Zuper) = calcDao.insertZuper(zuper)
-    override suspend fun updateZuper(zuper: Zuper) = calcDao.updateZuper(zuper)
-    override suspend fun deleteZuper(zuper: Zuper) = calcDao.deleteZuper(zuper)
     override fun getPad(): Flow<String> = calcDao.getPad()
     override suspend fun clearPad() = calcDao.clearPad()
     override suspend fun setPad(pad: String) = calcDao.setPad(PadTable(0, pad))
+    override fun getLastEpoch(): Flow<Int> = calcDao.getLastEpoch()
+    override fun getStackAtEpoch(epoch: Int) = calcDao.getStackAtEpoch(epoch)
+    override fun getStackAtLastEpoch() = calcDao.getStackAtLastEpoch()
+    override suspend fun insertStack(stackTable: StackTable) = calcDao.insertStack(stackTable)
+    override fun rollbackStack(epoch: Int) = calcDao.rollbackStack(epoch)
 }
 
 interface AppContainer {
@@ -169,15 +130,39 @@ class AppDataContainer(private val context: Context) : AppContainer {
     }
 }
 
+data class PadState(val pad: String)
+data class StackState(val stack: List<Double>)
+
+fun PadState.isEmpty() : Boolean = pad.isEmpty()
+
+class WorkingStack(stackState: StackState) {
+    val stack: MutableList<Double> = stackState.stack.toMutableList()
+    fun hasDepth(depth: Int) = stack.size >= depth
+    fun isEmpty() = !hasDepth(1)
+    fun push(x: Double) = stack.add(x)
+    fun pop(): Double = stack.removeAt(stack.lastIndex)
+    fun pick(depth: Int) = push(stack[depth])
+}
+
 class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
-    val calc = Calc()
-    //private val _padState0 = MutableStateFlow(PadState(""))
-    //val padState0 = _padState0.asStateFlow()
-    val padState = repository.getPad().map { PadState(it?:"") }
-        .stateIn(scope = viewModelScope,
+    val debugString = mutableStateOf("")
+    //////
+    // Format Parameters
+    //////
+    var formatParameters = FormatParameters()
+    fun formatSet(numberFormat: NumberFormat) { formatParameters.numberFormat.value = numberFormat }
+    fun formatGet() : NumberFormat { return formatParameters.numberFormat.value }
+    fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
+    ////////
+    /// Pad
+    ////////
+    val padState = repository.getPad().map { PadState(it ?: "") }
+        .stateIn(
+            scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(500L),
             initialValue = PadState("")
         )
+
     fun padIsEmpty() = padState.value.isEmpty()
     fun padAppend(char: String) = viewModelScope.launch {
         withContext(Dispatchers.IO) {
@@ -185,6 +170,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             repository.setPad(padState.value.pad.plus(char))
         }
     }
+
     fun padBackspace() = viewModelScope.launch {
         withContext(Dispatchers.IO) {
             if (!padIsEmpty()) {
@@ -193,22 +179,176 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             }
         }
     }
-    fun backspaceOrDrop() {
+
+    ////////
+    /// Stack
+    ////////
+    val stackLastEpoch = repository.getLastEpoch()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = 0
+        )
+
+    fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
+        // Quick out if list is empty
+        if (stl.isEmpty()) {
+            return StackState(listOf())
+        }
+        val sortedStl = stl.sortedBy { it.depth }
+        // Sanity check
+        if (sortedStl.first().depth > 0 || sortedStl.last().depth != sortedStl.size - 1) { // we are in trouble
+            // FIXME some how signal no state to update
+            // debugString.value = "Invalid stack in DB"
+            // return StackState(listOf())
+            return null
+        }
+        return StackState(sortedStl.map { it.value })
+    }
+
+    val stackState = repository.getStackAtLastEpoch().mapNotNull { stackStateFromStackTableList(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = StackState(listOf())
+        )
+
+    fun stackDepth() : Int = stackState.value.stack.size
+    fun stackRollBack() : Boolean {
+        val epoch = stackLastEpoch.value - 1
+        if (epoch > 0) { // FIXME
+            viewModelScope.launch {
+                withContext(Dispatchers.IO) {
+                    repository.rollbackStack(epoch)
+                }
+            }
+            return false
+        } else {
+            return true
+        }
+    }
+    private suspend fun backupStack(workingStack: WorkingStack) {
+        val epoch = stackLastEpoch.value
+        debugString.value = "epoch " + epoch.toString()
+        for ((depth, ss) in workingStack.stack.withIndex()) {
+            repository.insertStack(StackTable(0, epoch+1, depth, ss))
+        }
+    }
+
+    private fun impliedEnter() = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            // Copy pad to top of stack and clear pad
+            if (padIsEmpty()) {
+                // Do nothing?
+            } else {
+                val x = try {
+                    //if (formatGet() == NumberFormat.HEX) {
+                    //    padState.value.pad.toLong(radix = 16).toDouble()
+                    //} else {
+                    padState.value.pad.toDouble()
+                    //}
+                } catch (e: Exception) {
+                    0.0
+                }
+                val workingStack = WorkingStack(stackState.value)
+                workingStack.push(x)
+                repository.clearPad()
+                backupStack(workingStack)
+            }
+        }
+    }
+
+    fun pushConstant(x: Double) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            impliedEnter().join()
+            val workingStack = WorkingStack(stackState.value)
+            workingStack.push(x)
+            backupStack(workingStack)
+        }
+    }
+
+    fun swap() = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            impliedEnter().join()
+            val workingStack = WorkingStack(stackState.value)
+            if (workingStack.hasDepth(2)) {
+                val b = workingStack.pop()
+                val a = workingStack.pop()
+                workingStack.push(b)
+                workingStack.push(a)
+                backupStack(workingStack)
+            }
+        }
+    }
+
+    fun pick(index: Int) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            impliedEnter().join()
+            val workingStack = WorkingStack(stackState.value)
+            workingStack.pick(index)
+            backupStack(workingStack)
+        }
+    }
+    fun binop(op: (Double, Double) -> Double) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            impliedEnter().join()
+            val workingStack = WorkingStack(stackState.value)
+            if (workingStack.hasDepth(2)) {
+                val b = workingStack.pop()
+                val a = workingStack.pop()
+                workingStack.push(op(a, b))
+                backupStack(workingStack)
+            }
+        }
+    }
+
+    fun unop(op: (Double) -> Double) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            impliedEnter().join()
+            val workingStack = WorkingStack(stackState.value)
+            if (workingStack.hasDepth(2)) {
+                val a = workingStack.pop()
+                workingStack.push(op(a))
+                backupStack(workingStack)
+            }
+        }
+    }
+
+    fun pop1op(op: (Double) -> Unit) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            impliedEnter().join()
+            val workingStack = WorkingStack(stackState.value)
+            if (workingStack.hasDepth(2)) {
+                val a = workingStack.pop()
+                backupStack(workingStack)
+            }
+        }
+    }
+
+    /////////
+    // Pad + Stack
+    /////////
+    fun backspaceOrDrop() { // Combo backspace and drop
         if (padIsEmpty()) {
-            if (!calc.stack.isEmpty()) {
-                calc.stack.pop()
-                calc.undoSave()
+            if (!stackState.value.stack.isEmpty()) {
+                pop1op({ d -> })
             }
         } else {
             padBackspace()
         }
+    }
 
+    fun enterOrDup() { // Combo enter and dup
+        if (!padIsEmpty()) {
+            impliedEnter()
+        } else {
+            if (!stackState.value.stack.isEmpty()) {
+                val a = stackState.value.stack.last();
+                pushConstant(a)
+            }
+        }
     }
 }
-data class PadState(val pad: String)
-data class CalcState(val zuperList: List<Zuper> = listOf())
-
-fun PadState.isEmpty() : Boolean = pad.isEmpty()
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {

@@ -12,11 +12,13 @@ class FormatParameters() {
     val decimalPlaces = mutableStateOf(2)
     val superscriptFontSizeInt = mutableStateOf(0)
     val numberFormat = mutableStateOf(NumberFormat.FLOAT)
+    /*
     fun set(zuper: Zuper) {
         epsilon.value = zuper.epsilon
         decimalPlaces.value = zuper.decimalPlaces
         numberFormat.value = NumberFormat.valueOf(zuper.numberFormat)
     }
+    */
 }
 
 interface StackFormatter {
@@ -122,16 +124,9 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
     }
 }
 
+/*
 class Stack() {
     private val entries = mutableStateListOf<StackEntry>()
-    fun set(zuper: Zuper) {
-        entries.clear()
-        val s = arrayOf(zuper.stack00,zuper.stack01,zuper.stack02,zuper.stack03,zuper.stack04,
-            zuper.stack05,zuper.stack06,zuper.stack07,zuper.stack08,zuper.stack09)
-        for (i in 0..zuper.depth-1) {
-            push(s[i])
-        }
-    }
     fun entry(depth: Int) : StackEntry {
         if (hasDepth(depth)) {
             return entries[depth]
@@ -154,34 +149,9 @@ class Stack() {
     fun isEmpty(): Boolean { return !hasDepth(1)}
 }
 
-class Pad {
-    private val pad = mutableStateOf("")
-    fun set(zuper: Zuper) {
-        pad.value = zuper.pad
-    }
-    fun get() : String { return pad.value }
-    fun append(str: String) {
-        pad.value = pad.value + str
-    }
-    fun clear() {
-        pad.value = ""
-    }
-
-    fun backspace() {
-        if (!isEmpty()) {
-            pad.value = pad.value.substring(0, pad.value.length - 1)
-        }
-    }
-
-    fun isEmpty(): Boolean {
-        return pad.value.length == 0
-    }
-}
-
 class Calc() {
     val debugString = mutableStateOf("")
     val stack = Stack()
-    val pad = Pad()
     val formatParameters = FormatParameters()
     val undoManager = UndoManager()
     fun formatGet() : NumberFormat { return formatParameters.numberFormat.value }
@@ -315,3 +285,5 @@ class UndoManager {
         return history[history.lastIndex]
     }
 }
+
+ */
