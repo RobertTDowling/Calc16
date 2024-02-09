@@ -139,8 +139,8 @@ class WorkingStack(stackState: StackState) {
     val stack: MutableList<Double> = stackState.stack.toMutableList()
     fun hasDepth(depth: Int) = stack.size >= depth
     fun isEmpty() = !hasDepth(1)
-    fun push(x: Double) = stack.add(x)
-    fun pop(): Double = stack.removeAt(stack.lastIndex)
+    fun push(x: Double) = stack.add(0, x)
+    fun pop(): Double = stack.removeAt(0)
     fun pick(depth: Int) = push(stack[depth])
 }
 
