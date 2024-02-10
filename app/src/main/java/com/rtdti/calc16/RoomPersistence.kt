@@ -253,12 +253,17 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             return true
         }
     }
-    private suspend fun backupStack(workingStack: WorkingStack) {
-        val epoch = stackLastEpoch.value + 1
+
+    private suspend fun pruneBackups(epoch: Int) {
         val firstEpoch = stackFirstEpoch.value
-        if (firstEpoch + 10 < epoch) {
+        if (firstEpoch + 30 < epoch) {
             repository.rollbackStack(firstEpoch)
         }
+    }
+
+    private suspend fun backupStack(workingStack: WorkingStack) {
+        val epoch = stackLastEpoch.value + 1
+        pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }
 
@@ -275,9 +280,8 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         }
         val workingStack = WorkingStack(stackState.value)
         workingStack.push(x)
-        // repository.insertOrUpdatePad("")
-        // backupStack(workingStack)
         val epoch = stackLastEpoch.value + 1
+        pruneBackups(epoch)
         repository.insertFullStackClearPad(workingStack.asListStackTable(epoch))
         stackLastEpoch.value = epoch
         return workingStack
