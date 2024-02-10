@@ -98,9 +98,7 @@ fun ShowStack(viewModel: CalcViewModel) {
     LazyColumn(
         state = lazyListState,
         verticalArrangement = Arrangement.Bottom,
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 0.dp)
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         for (index in stack.size-1 downTo 0) {
             val text = formatter.format(stack[index], viewModel.formatParameters)
