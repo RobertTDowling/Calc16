@@ -78,7 +78,7 @@ interface CalcDao {
     fun rollbackStack(epoch: Int)
 
     @Query("SELECT * from FormatTable")
-    fun getFormatTable(): Flow<FormatTable?>
+    fun getFormatTable(): Flow<FormatTable>
 
     @Query("INSERT OR REPLACE INTO FormatTable (rowid, epsilon, decimalPlaces, numberFormat) values (:rowid, :epsilon, :decimalPlaces, :numberFormat)")
     suspend fun insertOrUpdateFormatTable(rowid: Int, epsilon: Double, decimalPlaces: Int, numberFormat: String)
@@ -126,7 +126,7 @@ abstract class CalcDatabase : RoomDatabase() {
 }
 
 interface CalcRepository {
-    fun getPad(): Flow<String?>
+    fun getPad(): Flow<String>
     suspend fun insertOrUpdatePad(pad: String)
     fun getStack() : Flow<List<StackTable>>
     suspend fun clearStack()
@@ -134,7 +134,7 @@ interface CalcRepository {
     fun rollbackStack(epoch: Int)
     suspend fun insertFullStack(lst: List<StackTable>)
     suspend fun insertFullStackClearPad(lst: List<StackTable>)
-    fun getFormatTable(): Flow<FormatTable?>
+    fun getFormatTable(): Flow<FormatTable>
     suspend fun insertOrUpdateFormatTable(formatTable: FormatTable)
 }
 
