@@ -5,7 +5,7 @@ import androidx.compose.ui.text.AnnotatedString
 import kotlin.math.absoluteValue
 
 interface StackFormatter {
-    fun format(value: Double, formatState: FormatState): AnnotatedString
+    fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString
     fun makeEString(error: Double, epsilon: Double): String {
         return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
     }
@@ -41,13 +41,13 @@ interface StackFormatter {
 }
 
 object StackFormatFloat : StackFormatter {
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         return AnnotatedString(value.toString())
     }
 }
 
 object StackFormatHex : StackFormatter {
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val truncated = value.toLong()
         val error = value - truncated
         val epsilon = formatState.epsilon
@@ -57,7 +57,7 @@ object StackFormatHex : StackFormatter {
 }
 
 object StackFormatImproper : StackFormatter {
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val epsilon = formatState.epsilon
         val f = CalcMath.double2frac(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, true))
@@ -65,7 +65,7 @@ object StackFormatImproper : StackFormatter {
 }
 
 object StackFormatMixImperial : StackFormatter {
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val epsilon = formatState.epsilon
         val f = CalcMath.double2imperial(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, false))
@@ -73,14 +73,14 @@ object StackFormatMixImperial : StackFormatter {
 }
 
 object StackFormatFix : StackFormatter {
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val decimalPlaces = formatState.decimalPlaces
         return AnnotatedString(String.format(String.format("%%.%df", decimalPlaces), value))
     }
 }
 
 object StackFormatSci : StackFormatter {
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val decimalPlaces = formatState.decimalPlaces
         return AnnotatedString(String.format(String.format("%%.%de", decimalPlaces), value))
     }
@@ -88,7 +88,7 @@ object StackFormatSci : StackFormatter {
 
 object StackFormatPrime : StackFormatter {
     var superscriptFontSizeInt = 0
-    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         return CalcMath.primeFactorAnnotatedString(value.toLong(), superscriptFontSizeInt)
     }
 }

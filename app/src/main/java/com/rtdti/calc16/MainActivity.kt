@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TheScaffold(viewModel: CalcViewModel) { // Needed to show snackbar
     val snackbarHostState = remember { SnackbarHostState() }
-    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { innerPadding ->
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { _/*innerPadding*/ ->
         Calc16Theme {
             Surface(modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background)
@@ -106,7 +106,7 @@ fun ShowStack(viewModel: CalcViewModel) {
                 ShowStackString(text, index, viewModel)
             }
         }
-        if (!pad.isEmpty()) {
+        if (!pad.pad.isEmpty()) {
             item {
                 ShowStackPadString(pad.pad)
             }
