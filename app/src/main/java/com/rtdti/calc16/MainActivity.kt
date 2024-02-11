@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtdti.calc16.ui.theme.Calc16Theme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -94,13 +96,18 @@ fun ShowStack(viewModel: CalcViewModel) {
     val stack = stackState.stack
     val formatState by viewModel.formatState.collectAsState()
     val formatter = formatState.numberFormat.formatter()
-    StackFormatPrime.superscriptFontSizeInt = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+    StackFormatPrime.superscriptFontSizeInt =
+        (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+    if (formatState.decimalPlaces == 666) {
+        ShowDemoStack(viewModel)
+        return
+    }
     LazyColumn(
         state = lazyListState,
         verticalArrangement = Arrangement.Bottom,
         modifier = Modifier.fillMaxSize()
     ) {
-        for (index in stack.size-1 downTo 0) {
+        for (index in stack.size - 1 downTo 0) {
             val text = formatter.format(stack[index], formatState)
             item {
                 ShowStackString(text, index, viewModel)
@@ -121,6 +128,24 @@ fun ShowStack(viewModel: CalcViewModel) {
     }
 }
 
+@Composable
+fun ShowDemoStack(viewModel: CalcViewModel) {
+    val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    Column(
+        verticalArrangement = Arrangement.Bottom,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        val formatState = CalcViewModel.FormatState(1e-4, 0, NumberFormat.IMPROPER)
+        ShowStackString(NumberFormat.IMPROPER.formatter().format(Math.PI, formatState), 0, viewModel)
+        ShowStackString(NumberFormat.FLOAT.formatter().format(Math.PI, formatState), 0, viewModel)
+        ShowStackString(NumberFormat.FIX.formatter().format(1048576.0, formatState), 0, viewModel)
+        ShowStackString(NumberFormat.HEX.formatter().format(1048576.0, formatState), 0, viewModel)
+        ShowStackString(NumberFormat.PRIME.formatter().format(536870901.0, formatState), 0, viewModel)
+        ShowStackString(NumberFormat.MIXIMPERIAL.formatter().format(1+3/16.0, formatState), 0, viewModel)
+        ShowStackPadString("2024.0211")
+    }
+}
 val stackEntryModifier = Modifier.padding(vertical = 0.dp, horizontal = 8.dp)
 val stackSurfaceModifier = Modifier.padding(vertical = 2.dp, horizontal = 8.dp)
 
