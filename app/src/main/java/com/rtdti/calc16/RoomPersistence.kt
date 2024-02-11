@@ -43,6 +43,13 @@ data class StackTable(
     @ColumnInfo(name = "value") val value: Double,
 )
 
+@Entity
+data class FormatTable(
+    @PrimaryKey(autoGenerate = true) val rowid: Int = 0,
+    @ColumnInfo(name = "epsilon") val epsilon: Double,
+    @ColumnInfo(name = "decimalPlaces") val decimalPlaces: Int,
+    @ColumnInfo(name = "numberFormat") val numberFormat: String,
+)
 @Dao
 interface CalcDao {
 
@@ -70,6 +77,12 @@ interface CalcDao {
     @Query("DELETE FROM StackTable where epoch = :epoch")
     fun rollbackStack(epoch: Int)
 
+    @Query("SELECT * from FormatTable")
+    fun getFormatTable(): Flow<FormatTable?>
+
+    @Query("INSERT OR REPLACE INTO FormatTable (rowid, epsilon, decimalPlaces, numberFormat) values (:rowid, :epsilon, :decimalPlaces, :numberFormat)")
+    suspend fun insertOrUpdateFormatTable(rowid: Int, epsilon: Double, decimalPlaces: Int, numberFormat: String)
+
     @Transaction
     suspend fun insertFullStackClearPad(listStackTable: List<StackTable>) {
         insertOrUpdatePad(0,"")
@@ -86,7 +99,7 @@ interface CalcDao {
     }
 }
 
-@Database(entities = arrayOf(PadTable::class, StackTable::class),
+@Database(entities = arrayOf(PadTable::class, StackTable::class, FormatTable::class),
     version = 1, exportSchema = false)
 abstract class CalcDatabase : RoomDatabase() {
     abstract fun calcDao(): CalcDao
@@ -121,6 +134,8 @@ interface CalcRepository {
     fun rollbackStack(epoch: Int)
     suspend fun insertFullStack(lst: List<StackTable>)
     suspend fun insertFullStackClearPad(lst: List<StackTable>)
+    fun getFormatTable(): Flow<FormatTable?>
+    suspend fun insertOrUpdateFormatTable(formatTable: FormatTable)
 }
 
 class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
@@ -132,6 +147,9 @@ class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
     override fun rollbackStack(epoch: Int) = calcDao.rollbackStack(epoch)
     override suspend fun insertFullStack(lst: List<StackTable>) = calcDao.insertFullStack(lst)
     override suspend fun insertFullStackClearPad(lst: List<StackTable>) = calcDao.insertFullStackClearPad(lst)
+    override fun getFormatTable() = calcDao.getFormatTable()
+    override suspend fun insertOrUpdateFormatTable(formatTable: FormatTable) =
+        calcDao.insertOrUpdateFormatTable(formatTable.rowid, formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat)
 }
 
 interface AppContainer {
@@ -147,6 +165,7 @@ class AppDataContainer(private val context: Context) : AppContainer {
 
 data class PadState(val pad: String)
 data class StackState(val stack: List<Double>)
+data class FormatState(val epsilon: Double, val decimalPlaces: Int, val numberFormat: NumberFormat)
 
 fun PadState.isEmpty() : Boolean = pad.isEmpty()
 
@@ -170,10 +189,25 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     //////
     // Format Parameters
     //////
-    var formatParameters = FormatParameters()
-    fun formatSet(numberFormat: NumberFormat) { formatParameters.numberFormat.value = numberFormat }
-    fun formatGet() : NumberFormat { return formatParameters.numberFormat.value }
-    fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
+    val formatState = repository.getFormatTable().mapNotNull { it?.let {FormatState(it.epsilon, it.decimalPlaces, NumberFormat.valueOf(it.numberFormat))} }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(500L),
+            initialValue = FormatState(1e-4, 2, NumberFormat.FLOAT)
+        )
+    fun epsilonSet(epsilon: Double) {
+        updateFormatTable(FormatState(epsilon, formatState.value.decimalPlaces, formatState.value.numberFormat)) }
+    fun decimalPlacesSet(decimalPlaces: Int) {
+        updateFormatTable(FormatState(formatState.value.epsilon, decimalPlaces, formatState.value.numberFormat)) }
+    fun numberFormatSet(numberFormat: NumberFormat) {
+        updateFormatTable(FormatState(formatState.value.epsilon, formatState.value.decimalPlaces, numberFormat)) }
+    fun numberFormatGet() : NumberFormat { return formatState.value.numberFormat }
+    fun updateFormatTable(formatState: FormatState) = viewModelScope.launch {
+        withContext(Dispatchers.IO) {
+            val formatTable = FormatTable(0, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
+            repository.insertOrUpdateFormatTable(formatTable)
+        }
+    }
     ////////
     /// Pad
     ////////
@@ -270,7 +304,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     private suspend fun doEnter(): WorkingStack {
         // Copy pad to top of stack and clear pad
         val x = try {
-            if (formatGet() == NumberFormat.HEX) {
+            if (numberFormatGet() == NumberFormat.HEX) {
                 padState.value.pad.toLong(radix = 16).toDouble()
             } else {
                 padState.value.pad.toDouble()

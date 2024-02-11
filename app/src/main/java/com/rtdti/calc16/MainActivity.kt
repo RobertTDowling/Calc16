@@ -93,15 +93,16 @@ fun ShowStack(viewModel: CalcViewModel) {
     val coroutineScope = rememberCoroutineScope()
     val stackState by viewModel.stackState.collectAsState()
     val stack = stackState.stack
-    val formatter = viewModel.formatter()
-    viewModel.formatParameters.superscriptFontSizeInt.value = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+    val formatState by viewModel.formatState.collectAsState()
+    val formatter = formatState.numberFormat.formatter()
+    StackFormatPrime.superscriptFontSizeInt = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
     LazyColumn(
         state = lazyListState,
         verticalArrangement = Arrangement.Bottom,
         modifier = Modifier.fillMaxSize()
     ) {
         for (index in stack.size-1 downTo 0) {
-            val text = formatter.format(stack[index], viewModel.formatParameters)
+            val text = formatter.format(stack[index], formatState)
             item {
                 ShowStackString(text, index, viewModel)
             }
@@ -235,20 +236,22 @@ fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selecte
 }
 @Composable
 fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewModel, crowded: Boolean = false) {
+    val formatState by viewModel.formatState.collectAsState()
     fun onClick() {
-        val oldFormat = viewModel.formatGet()
+        val oldFormat = formatState.numberFormat
         if (oldFormat == newFormat) { // Toggle
-            viewModel.formatSet(NumberFormat.FLOAT)
+            viewModel.numberFormatSet(NumberFormat.FLOAT)
         } else {
-            viewModel.formatSet(newFormat)
+            viewModel.numberFormatSet(newFormat)
         }
     }
-    val selected: Boolean = viewModel.formatGet() == newFormat
+    val selected: Boolean = formatState.numberFormat == newFormat
     KeyButton(text, ::onClick, Keytype.MODE, selected, crowded)
 }
 
 @Composable
 fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
+    val formatState by viewModel.formatState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     Column (
         modifier = colModifier,
@@ -261,10 +264,10 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
         ) {
             fun noMoreUndos() { coroutineScope.launch { snackbarHostState.showSnackbar("No More Undos")} }
             KeyButton(text = "⤺", { if (viewModel.stackRollBack()) noMoreUndos() }, Keytype.CONTROL)
-            KeyButton(text = " ", { viewModel.pushConstant(viewModel.formatParameters.epsilon.value) }, Keytype.BINOP)
-            KeyButton(text = "→ϵ", { viewModel.pop1op({ e -> viewModel.formatParameters.epsilon.value = e}) }, Keytype.UNOP)
-            KeyButton(text = "→.", { viewModel.pop1op({ d -> viewModel.formatParameters.decimalPlaces.value = d.toInt()}) }, Keytype.UNOP)
-            KeyButton(text = " ", { viewModel.pushConstant(viewModel.formatParameters.decimalPlaces.value.toDouble()) }, Keytype.BINOP)
+            KeyButton(text = " ", { viewModel.pushConstant(formatState.epsilon) }, Keytype.BINOP)
+            KeyButton(text = "→ϵ", { viewModel.pop1op({ e -> viewModel.epsilonSet(e)}) }, Keytype.UNOP)
+            KeyButton(text = "→.", { viewModel.pop1op({ d -> viewModel.decimalPlacesSet(d.toInt())}) }, Keytype.UNOP)
+            KeyButton(text = " ", { viewModel.pushConstant(formatState.decimalPlaces.toDouble()) }, Keytype.BINOP)
             KeyButton(text = "◀", { viewModel.backspaceOrDrop() }, Keytype.CONTROL)
         }
         Row(

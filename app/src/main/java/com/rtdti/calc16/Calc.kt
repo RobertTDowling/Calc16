@@ -4,15 +4,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.AnnotatedString
 import kotlin.math.absoluteValue
 
-class FormatParameters() {
-    val epsilon = mutableStateOf(1e-4)
-    val decimalPlaces = mutableStateOf(2)
-    val superscriptFontSizeInt = mutableStateOf(0)
-    val numberFormat = mutableStateOf(NumberFormat.FLOAT)
-}
-
 interface StackFormatter {
-    fun format(value: Double, formatParameters: FormatParameters): AnnotatedString
+    fun format(value: Double, formatState: FormatState): AnnotatedString
     fun makeEString(error: Double, epsilon: Double): String {
         return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
     }
@@ -48,54 +41,54 @@ interface StackFormatter {
 }
 
 object StackFormatFloat : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
         return AnnotatedString(value.toString())
     }
 }
 
 object StackFormatHex : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
         val truncated = value.toLong()
         val error = value - truncated
-        val epsilon = formatParameters.epsilon.value
+        val epsilon = formatState.epsilon
         val eString = makeEString (error, epsilon * epsilon)
         return AnnotatedString(String.format("0x%x%s", truncated, eString))
     }
 }
 
 object StackFormatImproper : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val epsilon = formatParameters.epsilon.value
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+        val epsilon = formatState.epsilon
         val f = CalcMath.double2frac(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, true))
     }
 }
 
 object StackFormatMixImperial : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val epsilon = formatParameters.epsilon.value
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+        val epsilon = formatState.epsilon
         val f = CalcMath.double2imperial(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, false))
     }
 }
 
 object StackFormatFix : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val decimalPlaces = formatParameters.decimalPlaces.value
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+        val decimalPlaces = formatState.decimalPlaces
         return AnnotatedString(String.format(String.format("%%.%df", decimalPlaces), value))
     }
 }
 
 object StackFormatSci : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val decimalPlaces = formatParameters.decimalPlaces.value
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
+        val decimalPlaces = formatState.decimalPlaces
         return AnnotatedString(String.format(String.format("%%.%de", decimalPlaces), value))
     }
 }
 
 object StackFormatPrime : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val superscriptFontSizeInt = formatParameters.superscriptFontSizeInt.value
+    var superscriptFontSizeInt = 0
+    override fun format(value: Double, formatState: FormatState): AnnotatedString {
         return CalcMath.primeFactorAnnotatedString(value.toLong(), superscriptFontSizeInt)
     }
 }
