@@ -18,7 +18,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     // fun PadState.isEmpty() : Boolean = pad.isEmpty()
 
-    class WorkingStack(stackState: StackState) {
+    private class WorkingStack(stackState: StackState) {
         val stack: MutableList<Double> = stackState.stack.toMutableList()
         fun asListStackTable(epoch: Int) : List<StackTable> {
             if (stack.isEmpty()) {
@@ -84,9 +84,9 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     ////////
     /// Stack
     ////////
-    val stackFirstEpoch = mutableStateOf(0)
-    val stackLastEpoch = mutableStateOf(0)
-    fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
+    private val stackFirstEpoch = mutableStateOf(0)
+    private val stackLastEpoch = mutableStateOf(0)
+    private fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
         // Quick out if list is empty
         if (stl.isEmpty()) {
             debugString.value = String.format("E: Empty Flow")
