@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtdti.calc16.ui.theme.Calc16Theme
 import kotlinx.coroutines.CoroutineScope
@@ -89,12 +90,12 @@ fun ShowDebug(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowStack(viewModel: CalcViewModel) {
-    val pad by viewModel.padState.collectAsState()
+    val pad by viewModel.padState.collectAsStateWithLifecycle()
+    val stackState by viewModel.stackState.collectAsStateWithLifecycle()
+    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    val stackState by viewModel.stackState.collectAsState()
     val stack = stackState.stack
-    val formatState by viewModel.formatState.collectAsState()
     val formatter = formatState.numberFormat.formatter()
     StackFormatPrime.superscriptFontSizeInt =
         (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
@@ -273,7 +274,7 @@ fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selecte
 }
 @Composable
 fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewModel, crowded: Boolean = false) {
-    val formatState by viewModel.formatState.collectAsState()
+    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     fun onClick() {
         val oldFormat = formatState.numberFormat
         if (oldFormat == newFormat) { // Toggle
@@ -288,7 +289,7 @@ fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewMod
 
 @Composable
 fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
-    val formatState by viewModel.formatState.collectAsState()
+    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     Column (
         modifier = colModifier,
