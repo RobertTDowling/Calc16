@@ -113,13 +113,26 @@ fun ShowStack(viewModel: CalcViewModel) {
                 ShowStackString(text, index, viewModel)
             }
         }
-        if (!pad.pad.isEmpty()) {
+        val LESS_GLITCHY_UI = true
+        if (LESS_GLITCHY_UI) {
+            if (stack.isEmpty() && pad.pad.isEmpty()) {
+                item {
+                    ShowStackString(AnnotatedString("Empty"), -1, viewModel)
+                }
+            }
             item {
                 ShowStackPadString(pad.pad)
             }
-        } else if (stack.isEmpty()) {
-            item {
-                ShowStackString(AnnotatedString("Empty"), -1, viewModel)
+        } else {
+            /* Better aesthetic UI, but due to asynch DB updates, can glitch */
+            if (!pad.pad.isEmpty()) {
+                item {
+                    ShowStackPadString(pad.pad)
+                }
+            } else if (stack.isEmpty()) {
+                item {
+                    ShowStackString(AnnotatedString("Empty"), -1, viewModel)
+                }
             }
         }
         coroutineScope.launch {
