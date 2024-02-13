@@ -100,7 +100,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         // Sanity check
         if (!filteredStl.isEmpty() && (filteredStl.first().depth > 0 || filteredStl.last().depth != filteredStl.size - 1)) {
             // we are in trouble
-            debugString.value = String.format("E: %d..%d Invalid", firstEpoch, lastEpoch, filteredStl.size)
+            debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {
                     repository.clearStack()
@@ -110,7 +110,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         }
         stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
         stackFirstEpoch.value = firstEpoch
-        debugString.value = String.format("E: %d..%d D: %d", firstEpoch, lastEpoch, filteredStl.size)
+        debugString.value = String.format("Undo Epochs: %d..%d", firstEpoch, lastEpoch)
         return StackState(filteredStl.map { it.value })
     }
 

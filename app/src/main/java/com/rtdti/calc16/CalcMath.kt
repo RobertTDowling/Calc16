@@ -108,15 +108,21 @@ object CalcMath {
 
     fun primeFactorAnnotatedString(x: Long, fs: Int): AnnotatedString {
         return buildAnnotatedString {
-            fun renderFactor(b: Long, p: Int) {
+            fun renderFactor(b: Long, p: Int, cdot: Boolean) {
+                if (cdot) {
+                    append("·")
+                }
                 append(b.toString())
-                withStyle(
-                    style = SpanStyle(
-                        baselineShift = BaselineShift.Superscript,
-                        fontSize = fs.sp
-                    )
-                ) { append(p.toString()) }
+                if (p>1) {
+                    withStyle(
+                        style = SpanStyle(
+                            baselineShift = BaselineShift.Superscript,
+                            fontSize = fs.sp
+                        )
+                    ) { append(p.toString()) }
+                }
             }
+            var any = false
             val end = Math.round(Math.sqrt(x.toDouble()));
             var a = x
             var b = 2L
@@ -124,6 +130,7 @@ object CalcMath {
             append(a.toString() + " = ")
             if (a < 2) {
                 append(a.toString())
+                any = true
             }
             while (a > 1) {
                 if ((a % b) == 0L) {
@@ -131,7 +138,8 @@ object CalcMath {
                     a /= b
                 } else {
                     if (p > 0) {
-                        renderFactor(b, p)
+                        renderFactor(b, p, any)
+                        any = true
                         p = 0
                     }
                     b += if (b == 2L) 1L else 2L
@@ -143,7 +151,7 @@ object CalcMath {
                 }
             }
             if (p > 0) {
-                renderFactor(b, p)
+                renderFactor(b, p, any)
             }
         } // buildAnnotatedString
     }
