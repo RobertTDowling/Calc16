@@ -1,6 +1,5 @@
 package com.rtdti.calc16
 
-// Todo: Save/Restore state
 // Todo: Animate push and pops (change in stack depth)
 
 import android.os.Bundle
