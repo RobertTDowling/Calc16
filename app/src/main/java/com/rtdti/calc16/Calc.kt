@@ -1,33 +1,11 @@
 package com.rtdti.calc16
 
-import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.AnnotatedString
 import kotlin.math.absoluteValue
 
-data class StackEntry(val value: Double)
-
-class FormatParameters() {
-    val epsilon = mutableStateOf(1e-4)
-    val decimalPlaces = mutableStateOf(2)
-    val superscriptFontSizeInt = mutableStateOf(0)
-    val numberFormat = mutableStateOf(NumberFormat.FLOAT)
-    fun copy(): FormatParameters {
-        val newFormatParameters = FormatParameters()
-        newFormatParameters.set(this)
-        return newFormatParameters
-    }
-    fun set(other: FormatParameters) {
-        epsilon.value = other.epsilon.value
-        decimalPlaces.value = other.decimalPlaces.value
-        superscriptFontSizeInt.value = other.superscriptFontSizeInt.value
-        numberFormat.value = other.numberFormat.value
-    }
-}
-
 interface StackFormatter {
-    fun format(value: Double, formatParameters: FormatParameters): AnnotatedString
+    fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString
     fun makeEString(error: Double, epsilon: Double): String {
         return if (error.absoluteValue > epsilon) { " + ϵ" } else { "" } // FIXME
     }
@@ -63,54 +41,54 @@ interface StackFormatter {
 }
 
 object StackFormatFloat : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         return AnnotatedString(value.toString())
     }
 }
 
 object StackFormatHex : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val truncated = value.toLong()
         val error = value - truncated
-        val epsilon = formatParameters.epsilon.value
+        val epsilon = formatState.epsilon
         val eString = makeEString (error, epsilon * epsilon)
         return AnnotatedString(String.format("0x%x%s", truncated, eString))
     }
 }
 
 object StackFormatImproper : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val epsilon = formatParameters.epsilon.value
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
+        val epsilon = formatState.epsilon
         val f = CalcMath.double2frac(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, true))
     }
 }
 
 object StackFormatMixImperial : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val epsilon = formatParameters.epsilon.value
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
+        val epsilon = formatState.epsilon
         val f = CalcMath.double2imperial(value, epsilon)
         return AnnotatedString(formatFrac(f, epsilon, false))
     }
 }
 
 object StackFormatFix : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val decimalPlaces = formatParameters.decimalPlaces.value
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
+        val decimalPlaces = formatState.decimalPlaces
         return AnnotatedString(String.format(String.format("%%.%df", decimalPlaces), value))
     }
 }
 
 object StackFormatSci : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val decimalPlaces = formatParameters.decimalPlaces.value
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
+        val decimalPlaces = formatState.decimalPlaces
         return AnnotatedString(String.format(String.format("%%.%de", decimalPlaces), value))
     }
 }
 
 object StackFormatPrime : StackFormatter {
-    override fun format(value: Double, formatParameters: FormatParameters): AnnotatedString {
-        val superscriptFontSizeInt = formatParameters.superscriptFontSizeInt.value
+    var superscriptFontSizeInt = 0
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         return CalcMath.primeFactorAnnotatedString(value.toLong(), superscriptFontSizeInt)
     }
 }
@@ -126,198 +104,5 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
             FIX -> StackFormatFix
             SCI -> StackFormatSci
         }
-    }
-}
-
-class Stack() {
-    private val entries = mutableStateListOf<StackEntry>()
-    fun copy(): Stack {
-        val newStack = Stack()
-        newStack.set(this)
-        return newStack
-    }
-    fun set(other: Stack) {
-        entries.clear()
-        for (entry in other.entries) {
-            entries.add(entry)
-        }
-    }
-    fun entry(depth: Int) : StackEntry {
-        if (hasDepth(depth)) {
-            return entries[depth]
-        }
-        throw IndexOutOfBoundsException()
-    }
-    fun depthGet() : Int { return entries.size }
-    fun push(x: Double) {
-        entries.add(0, StackEntry(x))
-    }
-    fun pop(): Double {
-        return entries.removeAt(0).value
-    }
-    fun pick(index: Int) {
-        push(entries[index].value)
-    }
-    fun hasDepth(d: Int): Boolean {
-        return entries.size >= d
-    }
-    fun isEmpty(): Boolean { return !hasDepth(1)}
-}
-
-class Pad {
-    private val pad = mutableStateOf("")
-    fun copy(): Pad {
-        val newPad = Pad()
-        newPad.set(this)
-        return newPad
-    }
-    fun set(other: Pad) {
-        pad.value = other.pad.value
-    }
-    fun get() : String { return pad.value }
-    fun append(str: String) {
-        pad.value = pad.value + str
-    }
-    fun clear() {
-        pad.value = ""
-    }
-
-    fun backspace() {
-        if (!isEmpty()) {
-            pad.value = pad.value.substring(0, pad.value.length - 1)
-        }
-    }
-
-    fun isEmpty(): Boolean {
-        return pad.value.length == 0
-    }
-}
-
-class Calc() {
-    val stack = Stack()
-    val pad = Pad()
-    val formatParameters = FormatParameters()
-    val undoManager = UndoManager()
-    fun formatGet() : NumberFormat { return formatParameters.numberFormat.value }
-    fun formatSet(fmt: NumberFormat) { formatParameters.numberFormat.value = fmt }
-    fun formatter(): StackFormatter { return formatParameters.numberFormat.value.formatter() }
-    fun undoSave() {
-        undoManager.save(CalcState(stack.copy(), pad.copy(), formatParameters.copy()))
-    }
-    fun undoRestore(): Boolean { // Return true if undo stack is empty
-        val cs = undoManager.restore()
-        cs?.let {
-            stack.set(cs.stack)
-            pad.set(cs.pad)
-            formatParameters.set(cs.formatParameters)
-            return false
-        }
-        return true
-    }
-
-    fun padAppend(str: String) { pad.append(str) }
-    private fun padEnter() { // Copy pad to top of stack and clear pad
-        undoSave()
-        if (pad.isEmpty()) {
-            // Do nothing?
-        } else {
-            val x = try {
-                if (formatGet() == NumberFormat.HEX) {
-                    pad.get().toLong(radix = 16).toDouble()
-                } else {
-                    pad.get().toDouble()
-                }
-            } catch (e: Exception) {
-                0.0
-            }
-            stack.push(x)
-            pad.clear()
-        }
-    }
-    fun backspaceOrDrop() { // Combo backspace and drop
-        if (pad.isEmpty()) {
-            undoSave()
-            if (!stack.isEmpty()) {
-                stack.pop()
-            }
-        } else {
-            pad.backspace()
-        }
-    }
-    fun enterOrDup() { // Combo enter and dup
-        if (!pad.isEmpty()) {
-            padEnter()
-        } else {
-            if (!stack.isEmpty()) {
-                undoSave()
-                val a = stack.pop();
-                stack.push(a)
-                stack.push(a)
-            }
-        }
-    }
-    fun push(x: Double) {
-        padEnter()
-        stack.push(x)
-    }
-    fun swap() {
-        padEnter()
-        if (stack.hasDepth(2)) {
-            val b = stack.pop()
-            val a = stack.pop()
-            push(b)
-            push(a)
-        }
-    }
-    fun pick(index: Int) {
-        padEnter()
-        stack.pick(index)
-    }
-    fun binop(op: (Double, Double) -> Double) {
-        padEnter()
-        if (stack.hasDepth(2)) {
-            val b = stack.pop()
-            val a = stack.pop()
-            stack.push(op(a, b))
-        }
-    }
-
-    fun unop(op: (Double) -> Double) {
-        padEnter()
-        if (stack.hasDepth(1)) {
-            val a = stack.pop()
-            stack.push(op(a))
-        }
-    }
-    fun pop1op(op: (Double) -> Unit) {
-        padEnter()
-        if (stack.hasDepth(1)) {
-            val a = stack.pop()
-            op(a)
-        }
-    }
-}
-
-data class CalcState(val stack: Stack, val pad: Pad, val formatParameters: FormatParameters)
-
-class UndoManager {
-    val TAG="UndoManager"
-    val MAX_DEPTH = 20
-    val history = mutableListOf<CalcState>()
-    fun save(calcState: CalcState) {
-        Log.i(TAG, String.format("history add[%d]", history.size))
-        history.add(calcState)
-        if (history.lastIndex == MAX_DEPTH) {
-            Log.i(TAG, "history add: trimmed last")
-            history.removeAt(0)
-        }
-    }
-    fun restore() : CalcState? {
-        if (history.isEmpty()) {
-            Log.i(TAG, "history restore: empty")
-            return null
-        }
-        Log.i(TAG, String.format("history restore[%d]", history.lastIndex))
-        return history.removeAt(history.lastIndex)
     }
 }
