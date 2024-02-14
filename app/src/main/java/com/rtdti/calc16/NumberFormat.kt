@@ -1,6 +1,5 @@
 package com.rtdti.calc16
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.AnnotatedString
 import kotlin.math.absoluteValue
 
