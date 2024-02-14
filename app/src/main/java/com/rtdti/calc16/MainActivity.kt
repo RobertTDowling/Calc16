@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,7 +24,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtdti.calc16.ui.theme.Calc16Theme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -212,23 +209,23 @@ enum class Keytype { CONTROL, ENTRY, UNOP, BINOP, TRIG, MODE }
 @Composable
 fun fgColor(typex: Keytype): Color {
     return when (typex) {
-        Keytype.CONTROL -> MaterialTheme.colorScheme.inverseSurface
-        Keytype.ENTRY -> MaterialTheme.colorScheme.primary
-        Keytype.UNOP -> MaterialTheme.colorScheme.secondary
-        Keytype.BINOP -> MaterialTheme.colorScheme.tertiary
-        Keytype.TRIG -> MaterialTheme.colorScheme.tertiary
-        Keytype.MODE -> MaterialTheme.colorScheme.errorContainer
+        Keytype.CONTROL -> MaterialTheme.colorScheme.surface
+        Keytype.ENTRY -> MaterialTheme.colorScheme.onPrimaryContainer
+        Keytype.UNOP -> MaterialTheme.colorScheme.onSecondaryContainer
+        Keytype.BINOP -> MaterialTheme.colorScheme.onTertiaryContainer
+        Keytype.TRIG -> MaterialTheme.colorScheme.onTertiaryContainer
+        Keytype.MODE -> MaterialTheme.colorScheme.onErrorContainer
     }
 }
 @Composable
 fun bgColor(typex: Keytype): Color {
     return when (typex) {
-        Keytype.CONTROL -> MaterialTheme.colorScheme.background
-        Keytype.ENTRY -> MaterialTheme.colorScheme.onPrimary
-        Keytype.UNOP -> MaterialTheme.colorScheme.onSecondary
-        Keytype.BINOP -> MaterialTheme.colorScheme.onTertiary
-        Keytype.TRIG -> MaterialTheme.colorScheme.onSecondary
-        Keytype.MODE -> MaterialTheme.colorScheme.onErrorContainer
+        Keytype.CONTROL -> MaterialTheme.colorScheme.inverseSurface
+        Keytype.ENTRY -> MaterialTheme.colorScheme.primaryContainer
+        Keytype.UNOP -> MaterialTheme.colorScheme.secondaryContainer
+        Keytype.BINOP -> MaterialTheme.colorScheme.tertiaryContainer
+        Keytype.TRIG -> MaterialTheme.colorScheme.secondaryContainer
+        Keytype.MODE -> MaterialTheme.colorScheme.errorContainer
     }
 }
 
@@ -257,13 +254,13 @@ fun KeyButton(text: String, onClick: () -> Unit, type: Keytype, selected: Boolea
 fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selected: Boolean = false, crowded: Boolean = false) {
     Surface(
         shape = MaterialTheme.shapes.medium,
-        color = if (selected) MaterialTheme.colorScheme.error else bgColor(type),
+        color = if (selected) fgColor(type) else bgColor(type),
         modifier = keySurfaceModifier
     ) {
         val mod = if (crowded) keyTextModifier.padding(top = 8.dp) else keyTextModifier.padding(top = 4.dp)
         Text(
             text = text,
-            color = fgColor(type),
+            color = if (selected) bgColor(type) else fgColor(type),
             modifier = mod.clickable { onClick() },
             fontSize = if (crowded)
                 MaterialTheme.typography.titleMedium.fontSize
