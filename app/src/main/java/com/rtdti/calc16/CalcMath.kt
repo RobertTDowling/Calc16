@@ -9,10 +9,23 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
-data class Frac(val num: Long, val denom: Long, val err: Double)
-
+data class Frac(val num: Long, val denom: Long, val err: Double) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Frac) return false
+        if (num != other.num) return false
+        if (denom != other.denom) return false
+        if (err != other.err) return false
+        return true
+    }
+    fun near(other: Frac, epsilon: Double): Boolean {
+        if (num != other.num) return false
+        if (denom != other.denom) return false
+        return maxOf(err.absoluteValue, other.err.absoluteValue) <= epsilon
+    }
+}
 object CalcMath {
-    fun double2frac (startx: Double, epsilon: Double) : Frac {
+    fun double2frac (startx: Double, maxden: Double) : Frac {
         // Taken from float_to_frac.c
         //** find rational approximation to given real number
         //** David Eppstein / UC Irvine / 8 Aug 1993
@@ -20,7 +33,6 @@ object CalcMath {
         //** With corrections from Arno Formella, May 2008
 
         var x = startx
-        val maxden = 1/epsilon;
 
         var m00 = 1L
         var m11 = 1L
