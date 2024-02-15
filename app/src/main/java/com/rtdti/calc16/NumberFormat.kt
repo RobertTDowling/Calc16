@@ -135,7 +135,7 @@ object StackFormatPrime : StackFormatter {
 }
 
 enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
-    fun formatter() : StackFormatter {
+    fun formatter(): StackFormatter {
         return when (this) {
             FLOAT -> StackFormatFloat
             HEX -> StackFormatHex
@@ -144,6 +144,18 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
             PRIME -> StackFormatPrime
             FIX -> StackFormatFix
             SCI -> StackFormatSci
+        }
+    }
+    fun parser(str: String): Double {
+        return if (this == NumberFormat.HEX) {
+            val ul = str.toULong(radix = 16)
+            if (ul and 0x8000000000000000UL != 0UL) {
+                -1.0 - (ul xor 0xffffffffffffffffUL).toDouble()
+            } else {
+                ul.toDouble()
+            }
+        } else {
+            str.toDouble()
         }
     }
 }

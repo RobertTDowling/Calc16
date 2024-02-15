@@ -154,13 +154,9 @@ class CalcViewModel(private val repository: CalcRepository,
     private suspend fun doEnter(): WorkingStack {
         // Copy pad to top of stack and clear pad
         val x = try {
-            if (numberFormatGet() == NumberFormat.HEX) {
-                padState.value.pad.toLong(radix = 16).toDouble()
-            } else {
-                padState.value.pad.toDouble()
-            }
+            numberFormatGet().parser(padState.value.pad)
         } catch (e: Exception) {
-            0.0
+            0.0 // Double.NaN // SQLite barfs on this
         }
         val workingStack = WorkingStack(stackState.value)
         workingStack.push(x)
