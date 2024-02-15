@@ -123,7 +123,7 @@ object CalcMath {
         return buildAnnotatedString {
             fun renderFactor(b: Long, p: Int, cdot: Boolean) {
                 if (cdot) {
-                    append("·")
+                    append(if (testable) "*" else "·")
                 }
                 append(b.toString())
                 if (p>1) {
@@ -143,8 +143,10 @@ object CalcMath {
             var a = x.absoluteValue
             var b = 2L
             var p = 0
-            if (sign) { append("-") }
-            append(a.toString() + " = ")
+            if (!testable) {
+                if (sign) { append("-") }
+                append(a.toString() + " = ")
+            }
             if (sign) { append("-") }
             if (a < 2) {
                 append(a.toString())

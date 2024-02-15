@@ -63,6 +63,26 @@ class CalcMathTest {
 
     @Test
     fun primeFactorAnnotatedString() {
+        fun twoto(e: Int) = Math.pow(2.0, e.toDouble()).toLong()
+        fun primeFactorString(x: Long): String {
+            val str = CalcMath.primeFactorAnnotatedString(x, 0)
+            return str.toString()
+        }
+        assertEquals("0", primeFactorString(0L))
+        assertEquals("1", primeFactorString(1L))
+        assertEquals("2", primeFactorString(2L))
+        assertEquals("3", primeFactorString(3L))
+        assertEquals("2^2", primeFactorString(4L))
+        assertEquals("-5", primeFactorString(-5L))
+        assertEquals("-2*3", primeFactorString(-6L))
+        assertEquals("2*3*5", primeFactorString(2*3*5L))
+        assertEquals("2^20", primeFactorString(twoto(20)))
+        assertNotEquals("3^20", primeFactorString(twoto(20)))
+        assertNotEquals("2^21", primeFactorString(twoto(20)))
+        assertNotEquals("2^19", primeFactorString(twoto(20)))
+        assertEquals("2^10*5^10", primeFactorString(10000000000))
+        assertEquals((twoto(31)-1).toString(), primeFactorString(twoto(31)-1))
+        assertEquals("641*6700417*2147483647", primeFactorString((twoto(31)-1) * (twoto(32)+1)))
     }
 
     @Test
