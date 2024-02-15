@@ -107,6 +107,7 @@ object CalcMath {
     }
 
     fun primeFactorAnnotatedString(x: Long, fs: Int): AnnotatedString {
+        val testable = fs == 0 // Unit tests don't set fs, so draw a ^ instead of superscript
         return buildAnnotatedString {
             fun renderFactor(b: Long, p: Int, cdot: Boolean) {
                 if (cdot) {
@@ -114,20 +115,25 @@ object CalcMath {
                 }
                 append(b.toString())
                 if (p>1) {
-                    withStyle(
-                        style = SpanStyle(
-                            baselineShift = BaselineShift.Superscript,
-                            fontSize = fs.sp
-                        )
-                    ) { append(p.toString()) }
+                    if (testable) {
+                        append("^")
+                        append(p.toString())
+                    } else {
+                        withStyle(
+                            style = SpanStyle(baselineShift = BaselineShift.Superscript, fontSize = fs.sp)
+                        ) { append(p.toString()) }
+                    }
                 }
             }
             var any = false
-            val end = Math.round(Math.sqrt(x.toDouble()));
-            var a = x
+            val sign = x<0
+            val end = Math.round(Math.sqrt(x.toDouble().absoluteValue));
+            var a = x.absoluteValue
             var b = 2L
             var p = 0
+            if (sign) { append("-") }
             append(a.toString() + " = ")
+            if (sign) { append("-") }
             if (a < 2) {
                 append(a.toString())
                 any = true
