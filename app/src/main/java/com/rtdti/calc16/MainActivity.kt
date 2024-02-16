@@ -391,7 +391,7 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "6", { viewModel.padAppend("6") }, Keytype.ENTRY)
             KeyButton(text = "×", { viewModel.binop({ a, b -> a*b}) }, Keytype.BINOP)
             KeyButton(text = btop("y","x",true), { viewModel.binop({ a, b -> Math.pow(a,b)}) }, Keytype.BINOP)
-            KeyButton(text = btop("y10","x"), { viewModel.binop({ a, b -> a*Math.pow(10.0,b)}) }, Keytype.BINOP)
+            KeyButton(text = "E±", { viewModel.padAppendEE() }, Keytype.ENTRY)
         }
         Row(
             modifier = rowModifier,

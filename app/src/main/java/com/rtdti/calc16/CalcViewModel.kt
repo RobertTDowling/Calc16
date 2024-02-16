@@ -74,6 +74,19 @@ class CalcViewModel(private val repository: CalcRepository,
             repository.insertOrUpdatePad(padState.value.pad.plus(char))
         }
     }
+    fun padAppendEE() = viewModelScope.launch {
+        var pad: String = padState.value.pad
+        if (pad.endsWith("E+")) {
+            pad = pad.removeSuffix("E+").plus("E-")
+        } else if (pad.endsWith("E-")) {
+            pad = pad.removeSuffix("E-").plus("E+")
+        } else {
+            pad = pad.plus("E+")
+        }
+        withContext(repositoryDispatcher) {
+            repository.insertOrUpdatePad(pad)
+        }
+    }
 
     fun padBackspace() = viewModelScope.launch {
         withContext(repositoryDispatcher) {
