@@ -115,4 +115,35 @@ class CalcMathTest {
         assertEquals("0:00", CalcMath.timeString(0.4/60))
         assertEquals("0:01", CalcMath.timeString(0.6/60))
     }
+
+    @Test
+    fun floatString()
+    {
+        fun twoto(e: Int) = Math.pow(2.0, e.toDouble())
+        assertEquals("0", CalcMath.floatString(0.0))
+        assertEquals("1", CalcMath.floatString(1.0))
+        assertEquals("-1", CalcMath.floatString(-1.0))
+        assertEquals("1.5", CalcMath.floatString(1.5))
+        assertEquals("0.0009765625", CalcMath.floatString(twoto(-10)))
+        assertEquals("0.9990234375", CalcMath.floatString(1 - twoto(-10)))
+        assertEquals("3.141592653589793", CalcMath.floatString(Math.PI))
+        assertEquals("1024", CalcMath.floatString(twoto(10)))
+        assertEquals("1000000", CalcMath.floatString(1e+6))
+        assertEquals("1048576", CalcMath.floatString(twoto(20)))
+        assertEquals("1073741824", CalcMath.floatString(twoto(30)))
+        assertEquals("1099511627776", CalcMath.floatString(twoto(40)))
+        assertEquals("1125899906842624", CalcMath.floatString(twoto(50)))
+        // assertEquals("1152921504606846976", CalcMath.floatString(twoto(60))))
+        assertEquals("1.15292150460684698E18", CalcMath.floatString(twoto(60)))
+        assertEquals("1.1805916207174113E21", CalcMath.floatString(twoto(70)))
+        assertEquals("0.000001", CalcMath.floatString(1e-6))
+        assertEquals("0.0009765625", CalcMath.floatString(twoto(-10)))
+        assertEquals("0.9990234375", CalcMath.floatString(1 - twoto(-10)))
+        assertEquals("9.5367431640625E-7", CalcMath.floatString(twoto(-20)))
+        assertEquals("9.313225746154785E-10", CalcMath.floatString(twoto(-30)))
+        assertEquals("9.094947017729282E-13", CalcMath.floatString(twoto(-40)))
+        assertEquals("8.881784197001252E-16", CalcMath.floatString(twoto(-50)))
+        assertEquals("8.673617379884035E-19", CalcMath.floatString(twoto(-60)))
+        assertEquals("8.470329472543003E-22", CalcMath.floatString(twoto(-70)))
+    }
 }

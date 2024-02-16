@@ -6,6 +6,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
+import java.text.DecimalFormat
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
@@ -142,10 +143,6 @@ object CalcMath {
             var a = x.absoluteValue
             var b = 2L
             var p = 0
-            if (!testable) {
-                if (sign) { append("-") }
-                append(a.toString() + " = ")
-            }
             if (sign) { append("-") }
             if (a < 2) {
                 append(a.toString())
@@ -180,5 +177,49 @@ object CalcMath {
         val minFloat = 60 * (value.absoluteValue - hr)
         val min = Math.round(minFloat).toInt()
         return String.format("%s%d:%02d", sign, hr, min)
+    }
+
+    enum class FloatWay { NUMBER_FORMATTER, LAZY, BY_HAND }
+    val Double.mantissa get() = toBits() and 0x000fffffffffffff
+    val Double.exponent get() = toBits() and 0x7ff0000000000000 shr 52
+    fun floatString(value: Double): String {
+        val way = FloatWay.NUMBER_FORMATTER
+        when(way) {
+            FloatWay.BY_HAND -> {
+                val mant = value.mantissa + 0x000fffffffffffff + 1
+                val exp = value.exponent - 1023
+                val str = String.format("%s = %x,%d", value.toString(), mant, exp)
+                return str
+            }
+
+            FloatWay.NUMBER_FORMATTER -> { // Can't Unit test
+                /* Android NumberFormatter
+                val str = NumberFormatter.withLocale(ULocale.US)// .withLocale(Locale.US)
+                    .grouping(NumberFormatter.GroupingStrategy.OFF)
+                    .precision(Precision.unlimited())
+                    .format(value).toString()
+                 */
+                lateinit var str: String
+                if (value.absoluteValue > 1e16 || value.absoluteValue > 0 && value.absoluteValue < 1e-6) {
+                    // Punt on big and small values (but not zero)
+                    str = value.toString()
+                } else {
+                    val nf = DecimalFormat.getInstance()
+                    nf.maximumFractionDigits = 16
+                    nf.maximumIntegerDigits = 16
+                    nf.isGroupingUsed = false
+                    str = nf.format(value)
+                }
+                return str
+            }
+
+            FloatWay.LAZY -> {
+                val intPart = value.toLong()
+                if (intPart.toDouble() == value) { // Format as an Int if we can
+                    return intPart.toString()
+                }
+                return value.toString()
+            }
+        }
     }
 }
