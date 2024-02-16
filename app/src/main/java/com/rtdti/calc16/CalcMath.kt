@@ -44,13 +44,13 @@ object CalcMath {
 
         // loop finding terms until denom gets too big
         while (m10 * ai + m11 <= maxden && loops < 100) {
-            loops++;
-            val t1 = m00 * ai + m01;
-            m01 = m00;
-            m00 = t1;
-            val t2 = m10 * ai + m11;
-            m11 = m10;
-            m10 = t2;
+            loops++
+            val t1 = m00 * ai + m01
+            m01 = m00
+            m00 = t1
+            val t2 = m10 * ai + m11
+            m11 = m10
+            m10 = t2
             if (x==ai.toDouble()) {
                 break     // AF: division by zero
             }
@@ -67,20 +67,18 @@ object CalcMath {
         val d1 = m10
         val e1 = startx - m00.toDouble() / m10
         /* now try other possibility */
-        ai = ((maxden - m11) / m10).toLong();
-        m00 = m00 * ai + m01;
-        m10 = m10 * ai + m11;
+        ai = ((maxden - m11) / m10).toLong()
+        m00 = m00 * ai + m01
+        m10 = m10 * ai + m11
 
         val n2 = m00
-        val d2 = m10;
+        val d2 = m10
         val e2 = startx - m00.toDouble() / m10
 
-        if (e1.absoluteValue < e2.absoluteValue) {
-            // Pick e1
-            return Frac(n1, d1, e1)
+        return if (e1.absoluteValue < e2.absoluteValue) {
+            Frac(n1, d1, e1) // Pick e1
         } else {
-            // Pick e2
-            return Frac(n2, d2, e2)
+            Frac(n2, d2, e2) // Pick e2
         }
     }
 
@@ -140,7 +138,7 @@ object CalcMath {
             }
             var any = false
             val sign = x<0
-            val end = Math.round(Math.sqrt(x.toDouble().absoluteValue));
+            val end = Math.round(Math.sqrt(x.toDouble().absoluteValue))
             var a = x.absoluteValue
             var b = 2L
             var p = 0

@@ -100,7 +100,7 @@ object StackFormatHex : StackFormatter {
 object StackFormatImproper : StackFormatter {
     override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
         val epsilon = formatState.epsilon
-        val f = CalcMath.double2frac(value, epsilon)
+        val f = CalcMath.double2frac(value, 1/epsilon)
         return AnnotatedString(formatFrac(f, epsilon, true))
     }
 }

@@ -105,13 +105,13 @@ class NumberFormatTest {
         val format = NumberFormat.PRIME
         val formatState = CalcViewModel.FormatState(1e-4, 2, format)
         val formatter = format.formatter()
-        assertEquals(AnnotatedString("0 = 0"), formatter.format(0.0, formatState))
-        assertEquals(AnnotatedString("1 = 1"), formatter.format(1.0, formatState))
-        assertEquals(AnnotatedString("1 = 1"), formatter.format(3/2.0, formatState))
-        assertEquals(AnnotatedString("-1 = -1"), formatter.format(-1.0, formatState))
-        assertEquals(AnnotatedString("-6 = -2·3"), formatter.format(-6.0, formatState))
-        assertEquals(AnnotatedString("2310 = 2·3·5·7·11"), formatter.format(2*3*5*7*11.0, formatState))
-        assertEquals(AnnotatedString("9 = 3^2"), formatter.format(9.0, formatState))
-        assertEquals(AnnotatedString("123456789 = 3^2·3607·3803"), formatter.format(123456789.0, formatState))
+        assertEquals(AnnotatedString("0"), formatter.format(0.0, formatState))
+        assertEquals(AnnotatedString("1"), formatter.format(1.0, formatState))
+        assertEquals(AnnotatedString("1"), formatter.format(3/2.0, formatState))
+        assertEquals(AnnotatedString("-1"), formatter.format(-1.0, formatState))
+        assertEquals(AnnotatedString("-2*3"), formatter.format(-6.0, formatState))
+        assertEquals(AnnotatedString("2*3*5*7*11"), formatter.format(2*3*5*7*11.0, formatState))
+        assertEquals(AnnotatedString("3^2"), formatter.format(9.0, formatState))
+        assertEquals(AnnotatedString("3^2*3607*3803"), formatter.format(123456789.0, formatState))
     }
 }
