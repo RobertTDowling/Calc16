@@ -87,9 +87,22 @@ class CalcMathTest {
 
     @Test
     fun gcd() {
+        assertEquals(2, CalcMath.gcd(6, 8))
+        assertEquals(2, CalcMath.gcd(-6, 8))
+        assertEquals(2, CalcMath.gcd(6, -8))
+        assertEquals(2, CalcMath.gcd(-6, -8))
+        assertEquals(22, CalcMath.gcd(66, 88))
+        assertEquals(1, CalcMath.gcd(355, 113))
+        assertEquals(1, CalcMath.gcd(355, 1))
+        assertEquals(1, CalcMath.gcd(1, 113))
+        assertEquals(1, CalcMath.gcd(0, 0))
+        assertEquals(1, CalcMath.gcd(355, 0))
+        assertEquals(1, CalcMath.gcd(0, 113))
     }
 
     @Test
     fun lcm() {
+        assertEquals(15, CalcMath.lcm(3, 5))
+        assertEquals(24, CalcMath.lcm(6, 8))
     }
 }

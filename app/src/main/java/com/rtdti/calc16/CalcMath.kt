@@ -85,15 +85,16 @@ object CalcMath {
     }
 
     fun gcd(a: Long, b: Long) : Long {
-        var a=a
-        var b=b
-        while (a>0 && b>0) {
-            if (a < b) {
-                a = b.also({ b = a })
+        if (a==0L) { return 1L }
+        var aa=a.absoluteValue
+        var bb=b.absoluteValue
+        while (aa>0 && bb>0) {
+            if (aa < bb) {
+                aa = bb.also({ bb = aa }) // Swap aa,bb
             }
-            a %= b
+            aa %= bb
         }
-        return if (b < 1) 1L else b
+        return if (bb < 1) 1L else bb
     }
 
     fun lcm(a: Long, b: Long) : Long {
