@@ -235,4 +235,28 @@ object CalcMath {
     fun log2(value: Double): Double {
         return if (value >=0) Math.log(value)/Math.log(2.0) else Double.NEGATIVE_INFINITY
     }
+    fun signExtend(value: Double): Double {
+        val v = value.toLong()
+        var res = v
+        if (v and 0x7FFFFFFF80000000L == 0x80000000L) {
+            res = -1L - (v xor 0xffffffffL)
+        } else if (v and 0x7FFFFFFFFFFF8000L == 0x8000L) {
+            res = v or 0xFFFF0000L
+        } else if (v and 0x7FFFFFFFFFFFFF80L == 0x80L) {
+            res = v or 0xFF00L
+        }
+        return res.toDouble()
+    }
+    fun signCrop(value: Double): Double {
+        val v = value.toLong()
+        var res = v
+        if (v and 0x7FFFFFFF00000000L != 0L) {
+            res = v and 0xFFFFFFFFL
+        } else if (v and 0x00000000FFFF0000L != 0L) {
+            res = v and 0xFFFFL
+        } else if (v and 0x000000000000FF00L != 0L) {
+            res = v and 0xFFL
+        }
+        return res.toDouble()
+    }
 }

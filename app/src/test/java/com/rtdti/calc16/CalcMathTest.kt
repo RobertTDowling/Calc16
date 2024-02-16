@@ -148,7 +148,7 @@ class CalcMathTest {
     }
 
     @Test
-    fun sqrt_etc() {
+    fun negative_sqrt_etc() {
         assertEquals(2.0, CalcMath.sqrt(4.0), EPSILON)
         assertTrue(CalcMath.sqrt(-4.0).isInfinite())
         assertEquals(0.0, CalcMath.ln(1.0), EPSILON)
@@ -157,5 +157,24 @@ class CalcMathTest {
         assertTrue(CalcMath.log10(-4.0).isInfinite())
         assertEquals(2.0, CalcMath.log2(4.0), EPSILON)
         assertTrue(CalcMath.log2(-4.0).isInfinite())
+    }
+    @Test
+    fun signCrop() {
+        assertEquals(0x1.toDouble(), CalcMath.signCrop(0x1.toDouble()), EPSILON)
+        assertEquals(0x34.toDouble(), CalcMath.signCrop(0x1234.toDouble()), EPSILON)
+        assertEquals(0x5678.toDouble(), CalcMath.signCrop(0x12345678.toDouble()), EPSILON)
+        assertEquals(0x9abcdef0.toDouble(), CalcMath.signCrop(0x3456789abcdef0.toDouble()), EPSILON)
+        assertEquals(0xffffffff.toDouble(), CalcMath.signCrop(-1.0), EPSILON)
+        assertEquals(0xfffffffe.toDouble(), CalcMath.signCrop(-2.0), EPSILON)
+    }
+    @Test
+    fun signExtend() {
+        assertEquals(0x1.toDouble(), CalcMath.signExtend(0x1.toDouble()), EPSILON)
+        assertEquals(0x76.toDouble(), CalcMath.signExtend(0x76.toDouble()), EPSILON)
+        assertEquals(0xff9a.toDouble(), CalcMath.signExtend(0x9a.toDouble()), EPSILON)
+        assertEquals(0x7654.toDouble(), CalcMath.signExtend(0x7654.toDouble()), EPSILON)
+        assertEquals(0xffff9abc.toDouble(), CalcMath.signExtend(0x9abc.toDouble()), EPSILON)
+        assertEquals(0x76543210.toDouble(), CalcMath.signExtend(0x76543210.toDouble()), EPSILON)
+        assertEquals(-(0x65432110.toDouble()), CalcMath.signExtend(0x9abcdef0.toDouble()), EPSILON)
     }
 }

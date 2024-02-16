@@ -324,8 +324,8 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "[x]", { viewModel.unop({ a -> Math.round(a).toDouble() }) }, Keytype.UNOP)
             KeyButton(text = "⎡x⎤", { viewModel.unop({ a -> Math.ceil(a)}) }, Keytype.UNOP)
             KeyButton(text = "gcd", { viewModel.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = "lcm", { viewModel.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = " ", { viewModel.pushConstant(viewModel.stackDepth().toDouble()) }, Keytype.BINOP)
+            KeyButton(text = "←1", { viewModel.unop({ a -> CalcMath.signExtend(a)}) }, Keytype.UNOP)
+            KeyButton(text = "0→", { viewModel.unop({ a -> CalcMath.signCrop(a) }) }, Keytype.UNOP)
         }
         Row(
             modifier = rowModifier,
