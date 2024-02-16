@@ -174,4 +174,11 @@ object CalcMath {
             }
         } // buildAnnotatedString
     }
+    fun timeString(value: Double): String {
+        val sign = if (value < 0.0) "-" else ""
+        val hr = Math.floor(value.absoluteValue).toInt()
+        val minFloat = 60 * (value.absoluteValue - hr)
+        val min = Math.round(minFloat).toInt()
+        return String.format("%s%d:%02d", sign, hr, min)
+    }
 }

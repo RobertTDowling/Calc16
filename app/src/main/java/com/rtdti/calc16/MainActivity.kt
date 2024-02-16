@@ -302,7 +302,7 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = " ", { viewModel.pushConstant(formatState.epsilon) }, Keytype.BINOP)
             KeyButton(text = "→ϵ", { viewModel.pop1op({ e -> viewModel.epsilonSet(e)}) }, Keytype.UNOP)
             KeyButton(text = "→.", { viewModel.pop1op({ d -> viewModel.decimalPlacesSet(d.toInt())}) }, Keytype.UNOP)
-            KeyButton(text = " ", { viewModel.pushConstant(formatState.decimalPlaces.toDouble()) }, Keytype.BINOP)
+            ModalKeyButton(text = "⏱", NumberFormat.TIME, viewModel)
             KeyButton(text = "◀", { viewModel.backspaceOrDrop() }, Keytype.CONTROL)
         }
         Row(

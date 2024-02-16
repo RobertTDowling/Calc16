@@ -105,4 +105,14 @@ class CalcMathTest {
         assertEquals(15, CalcMath.lcm(3, 5))
         assertEquals(24, CalcMath.lcm(6, 8))
     }
+    
+    @Test
+    fun timeString() {
+        assertEquals("0:00", CalcMath.timeString(0.0))
+        assertEquals("1:30", CalcMath.timeString(1.5))
+        assertEquals("1:30", CalcMath.timeString(1.501))
+        assertEquals("-1:15", CalcMath.timeString(-1.25))
+        assertEquals("0:00", CalcMath.timeString(0.4/60))
+        assertEquals("0:01", CalcMath.timeString(0.6/60))
+    }
 }

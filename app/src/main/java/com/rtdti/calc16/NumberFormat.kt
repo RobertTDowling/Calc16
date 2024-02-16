@@ -134,7 +134,15 @@ object StackFormatPrime : StackFormatter {
     }
 }
 
-enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
+object StackFormatTime : StackFormatter {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
+        val hr = Math.floor(value)
+        val min = 60 * (value - hr)
+        return AnnotatedString(String.format("%s = %s", value.toString(), CalcMath.timeString(value)))
+    }
+}
+
+enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI, TIME;
     fun formatter(): StackFormatter {
         return when (this) {
             FLOAT -> StackFormatFloat
@@ -144,6 +152,7 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
             PRIME -> StackFormatPrime
             FIX -> StackFormatFix
             SCI -> StackFormatSci
+            TIME -> StackFormatTime
         }
     }
     fun parser(str: String): Double {

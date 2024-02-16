@@ -114,4 +114,14 @@ class NumberFormatTest {
         assertEquals(AnnotatedString("3^2"), formatter.format(9.0, formatState))
         assertEquals(AnnotatedString("3^2*3607*3803"), formatter.format(123456789.0, formatState))
     }
+
+    @Test
+    fun formatterTime() {
+        val format = NumberFormat.TIME
+        val formatState = CalcViewModel.FormatState(1e-4, 2, format)
+        val formatter = format.formatter()
+        assertEquals(AnnotatedString("0.0 = 0:00"), formatter.format(0.0, formatState))
+        assertEquals(AnnotatedString("1.5 = 1:30"), formatter.format(1.5, formatState))
+        assertEquals(AnnotatedString("-1.25 = -1:15"), formatter.format(-1.25, formatState))
+    }
 }
