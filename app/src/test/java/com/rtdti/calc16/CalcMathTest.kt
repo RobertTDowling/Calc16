@@ -146,4 +146,16 @@ class CalcMathTest {
         assertEquals("8.673617379884035E-19", CalcMath.floatString(twoto(-60)))
         assertEquals("8.470329472543003E-22", CalcMath.floatString(twoto(-70)))
     }
+
+    @Test
+    fun sqrt_etc() {
+        assertEquals(2.0, CalcMath.sqrt(4.0), EPSILON)
+        assertTrue(CalcMath.sqrt(-4.0).isInfinite())
+        assertEquals(0.0, CalcMath.ln(1.0), EPSILON)
+        assertTrue(CalcMath.ln(-4.0).isInfinite())
+        assertEquals(2.0, CalcMath.log10(100.0), EPSILON)
+        assertTrue(CalcMath.log10(-4.0).isInfinite())
+        assertEquals(2.0, CalcMath.log2(4.0), EPSILON)
+        assertTrue(CalcMath.log2(-4.0).isInfinite())
+    }
 }

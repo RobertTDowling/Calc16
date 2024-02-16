@@ -222,4 +222,17 @@ object CalcMath {
             }
         }
     }
+    fun sqrt(value: Double): Double {
+        return if (value >=0) Math.sqrt(value) else Double.NEGATIVE_INFINITY
+    }
+
+    fun ln(value: Double): Double {
+        return if (value >=0) Math.log(value) else Double.NEGATIVE_INFINITY
+    }
+    fun log10(value: Double): Double {
+        return if (value >=0) Math.log10(value) else Double.NEGATIVE_INFINITY
+    }
+    fun log2(value: Double): Double {
+        return if (value >=0) Math.log(value)/Math.log(2.0) else Double.NEGATIVE_INFINITY
+    }
 }
