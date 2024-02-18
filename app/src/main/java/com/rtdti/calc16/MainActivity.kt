@@ -93,9 +93,7 @@ fun ShowStack(viewModel: CalcViewModel) {
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val stack = stackState.stack
-    val formatter = formatState.numberFormat.formatter()
-    StackFormatPrime.superscriptFontSizeInt =
-        (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+    val formatter = Formatter(formatState, (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt())
     if (formatState.decimalPlaces == 666) {
         ShowDemoStack(viewModel)
         return
@@ -106,7 +104,7 @@ fun ShowStack(viewModel: CalcViewModel) {
         modifier = Modifier.fillMaxSize()
     ) {
         for (index in stack.size - 1 downTo 0) {
-            val text = formatter.format(stack[index], formatState)
+            val text = formatter.format(stack[index])
             item {
                 ShowStackString(text, index, viewModel)
             }
@@ -141,20 +139,20 @@ fun ShowStack(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowDemoStack(viewModel: CalcViewModel) {
-    val lazyListState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
     Column(
         verticalArrangement = Arrangement.Bottom,
         modifier = Modifier.fillMaxSize()
     ) {
-        val formatState = CalcViewModel.FormatState(1e-4, 0, NumberFormat.IMPROPER)
-        ShowStackString(NumberFormat.IMPROPER.formatter().format(Math.PI, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.FLOAT.formatter().format(Math.PI, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.FIX.formatter().format(1048576.0, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.HEX.formatter().format(1048576.0, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.PRIME.formatter().format(536870901.0, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.MIXIMPERIAL.formatter().format(1+3/16.0, formatState), 0, viewModel)
-        ShowStackPadString("2024.0211")
+        val eps = 1e-4
+        val dp = 0
+        val ss = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.IMPROPER), ss).format(Math.PI), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.FLOAT), ss).format(Math.PI), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.TIME), ss).format(4.75), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.HEX), ss).format(1048576.0), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.PRIME), ss).format(536870901.0), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.MIXIMPERIAL), ss).format(1+3/16.0), 0, viewModel)
+        ShowStackPadString("2024.0218")
     }
 }
 val stackEntryModifier = Modifier.padding(vertical = 0.dp, horizontal = 8.dp)

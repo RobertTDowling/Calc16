@@ -51,7 +51,6 @@ class CalcViewModel(private val repository: CalcRepository,
         updateFormatTable(FormatState(formatState.value.epsilon, decimalPlaces, formatState.value.numberFormat)) }
     fun numberFormatSet(numberFormat: NumberFormat) {
         updateFormatTable(FormatState(formatState.value.epsilon, formatState.value.decimalPlaces, numberFormat)) }
-    fun numberFormatGet() : NumberFormat { return formatState.value.numberFormat }
     fun updateFormatTable(formatState: FormatState) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
             val formatTable = FormatTable(0, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
@@ -167,7 +166,8 @@ class CalcViewModel(private val repository: CalcRepository,
     private suspend fun doEnter(): WorkingStack {
         // Copy pad to top of stack and clear pad
         val x = try {
-            numberFormatGet().parser(padState.value.pad)
+            val formatter = Formatter(formatState.value, 0)
+            formatter.parser(padState.value.pad)
         } catch (e: Exception) {
             0.0 // Double.NaN // SQLite barfs on this
         }
