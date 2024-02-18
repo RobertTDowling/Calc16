@@ -105,4 +105,76 @@ class CalcMathTest {
         assertEquals(15, CalcMath.lcm(3, 5))
         assertEquals(24, CalcMath.lcm(6, 8))
     }
+    
+    @Test
+    fun timeString() {
+        assertEquals("0:00", CalcMath.timeString(0.0))
+        assertEquals("1:30", CalcMath.timeString(1.5))
+        assertEquals("1:30", CalcMath.timeString(1.501))
+        assertEquals("-1:15", CalcMath.timeString(-1.25))
+        assertEquals("0:00", CalcMath.timeString(0.4/60))
+        assertEquals("0:01", CalcMath.timeString(0.6/60))
+    }
+
+    @Test
+    fun floatString()
+    {
+        fun twoto(e: Int) = Math.pow(2.0, e.toDouble())
+        assertEquals("0", CalcMath.floatString(0.0))
+        assertEquals("1", CalcMath.floatString(1.0))
+        assertEquals("-1", CalcMath.floatString(-1.0))
+        assertEquals("1.5", CalcMath.floatString(1.5))
+        assertEquals("0.0009765625", CalcMath.floatString(twoto(-10)))
+        assertEquals("0.9990234375", CalcMath.floatString(1 - twoto(-10)))
+        assertEquals("3.141592653589793", CalcMath.floatString(Math.PI))
+        assertEquals("1024", CalcMath.floatString(twoto(10)))
+        assertEquals("1000000", CalcMath.floatString(1e+6))
+        assertEquals("1048576", CalcMath.floatString(twoto(20)))
+        assertEquals("1073741824", CalcMath.floatString(twoto(30)))
+        assertEquals("1099511627776", CalcMath.floatString(twoto(40)))
+        assertEquals("1125899906842624", CalcMath.floatString(twoto(50)))
+        // assertEquals("1152921504606846976", CalcMath.floatString(twoto(60))))
+        assertEquals("1.15292150460684698E18", CalcMath.floatString(twoto(60)))
+        assertEquals("1.1805916207174113E21", CalcMath.floatString(twoto(70)))
+        assertEquals("0.000001", CalcMath.floatString(1e-6))
+        assertEquals("0.0009765625", CalcMath.floatString(twoto(-10)))
+        assertEquals("0.9990234375", CalcMath.floatString(1 - twoto(-10)))
+        assertEquals("9.5367431640625E-7", CalcMath.floatString(twoto(-20)))
+        assertEquals("9.313225746154785E-10", CalcMath.floatString(twoto(-30)))
+        assertEquals("9.094947017729282E-13", CalcMath.floatString(twoto(-40)))
+        assertEquals("8.881784197001252E-16", CalcMath.floatString(twoto(-50)))
+        assertEquals("8.673617379884035E-19", CalcMath.floatString(twoto(-60)))
+        assertEquals("8.470329472543003E-22", CalcMath.floatString(twoto(-70)))
+    }
+
+    @Test
+    fun negative_sqrt_etc() {
+        assertEquals(2.0, CalcMath.sqrt(4.0), EPSILON)
+        assertTrue(CalcMath.sqrt(-4.0).isInfinite())
+        assertEquals(0.0, CalcMath.ln(1.0), EPSILON)
+        assertTrue(CalcMath.ln(-4.0).isInfinite())
+        assertEquals(2.0, CalcMath.log10(100.0), EPSILON)
+        assertTrue(CalcMath.log10(-4.0).isInfinite())
+        assertEquals(2.0, CalcMath.log2(4.0), EPSILON)
+        assertTrue(CalcMath.log2(-4.0).isInfinite())
+    }
+    @Test
+    fun signCrop() {
+        assertEquals(0x1.toDouble(), CalcMath.signCrop(0x1.toDouble()), EPSILON)
+        assertEquals(0x34.toDouble(), CalcMath.signCrop(0x1234.toDouble()), EPSILON)
+        assertEquals(0x5678.toDouble(), CalcMath.signCrop(0x12345678.toDouble()), EPSILON)
+        assertEquals(0x9abcdef0.toDouble(), CalcMath.signCrop(0x3456789abcdef0.toDouble()), EPSILON)
+        assertEquals(0xffffffff.toDouble(), CalcMath.signCrop(-1.0), EPSILON)
+        assertEquals(0xfffffffe.toDouble(), CalcMath.signCrop(-2.0), EPSILON)
+    }
+    @Test
+    fun signExtend() {
+        assertEquals(0x1.toDouble(), CalcMath.signExtend(0x1.toDouble()), EPSILON)
+        assertEquals(0x76.toDouble(), CalcMath.signExtend(0x76.toDouble()), EPSILON)
+        assertEquals(0xff9a.toDouble(), CalcMath.signExtend(0x9a.toDouble()), EPSILON)
+        assertEquals(0x7654.toDouble(), CalcMath.signExtend(0x7654.toDouble()), EPSILON)
+        assertEquals(0xffff9abc.toDouble(), CalcMath.signExtend(0x9abc.toDouble()), EPSILON)
+        assertEquals(0x76543210.toDouble(), CalcMath.signExtend(0x76543210.toDouble()), EPSILON)
+        assertEquals(-(0x65432110.toDouble()), CalcMath.signExtend(0x9abcdef0.toDouble()), EPSILON)
+    }
 }

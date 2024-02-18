@@ -6,6 +6,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
+import java.text.DecimalFormat
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
@@ -142,10 +143,6 @@ object CalcMath {
             var a = x.absoluteValue
             var b = 2L
             var p = 0
-            if (!testable) {
-                if (sign) { append("-") }
-                append(a.toString() + " = ")
-            }
             if (sign) { append("-") }
             if (a < 2) {
                 append(a.toString())
@@ -173,5 +170,93 @@ object CalcMath {
                 renderFactor(b, p, any)
             }
         } // buildAnnotatedString
+    }
+    fun timeString(value: Double): String {
+        val sign = if (value < 0.0) "-" else ""
+        val hr = Math.floor(value.absoluteValue).toInt()
+        val minFloat = 60 * (value.absoluteValue - hr)
+        val min = Math.round(minFloat).toInt()
+        return String.format("%s%d:%02d", sign, hr, min)
+    }
+
+    enum class FloatWay { NUMBER_FORMATTER, LAZY, BY_HAND }
+    val Double.mantissa get() = toBits() and 0x000fffffffffffff
+    val Double.exponent get() = toBits() and 0x7ff0000000000000 shr 52
+    fun floatString(value: Double): String {
+        val way = FloatWay.NUMBER_FORMATTER
+        when(way) {
+            FloatWay.BY_HAND -> {
+                val mant = value.mantissa + 0x000fffffffffffff + 1
+                val exp = value.exponent - 1023
+                val str = String.format("%s = %x,%d", value.toString(), mant, exp)
+                return str
+            }
+
+            FloatWay.NUMBER_FORMATTER -> { // Can't Unit test
+                /* Android NumberFormatter
+                val str = NumberFormatter.withLocale(ULocale.US)// .withLocale(Locale.US)
+                    .grouping(NumberFormatter.GroupingStrategy.OFF)
+                    .precision(Precision.unlimited())
+                    .format(value).toString()
+                 */
+                lateinit var str: String
+                if (value.absoluteValue > 1e16 || value.absoluteValue > 0 && value.absoluteValue < 1e-6) {
+                    // Punt on big and small values (but not zero)
+                    str = value.toString()
+                } else {
+                    val nf = DecimalFormat.getInstance()
+                    nf.maximumFractionDigits = 16
+                    nf.maximumIntegerDigits = 16
+                    nf.isGroupingUsed = false
+                    str = nf.format(value)
+                }
+                return str
+            }
+
+            FloatWay.LAZY -> {
+                val intPart = value.toLong()
+                if (intPart.toDouble() == value) { // Format as an Int if we can
+                    return intPart.toString()
+                }
+                return value.toString()
+            }
+        }
+    }
+    fun sqrt(value: Double): Double {
+        return if (value >=0) Math.sqrt(value) else Double.NEGATIVE_INFINITY
+    }
+
+    fun ln(value: Double): Double {
+        return if (value >=0) Math.log(value) else Double.NEGATIVE_INFINITY
+    }
+    fun log10(value: Double): Double {
+        return if (value >=0) Math.log10(value) else Double.NEGATIVE_INFINITY
+    }
+    fun log2(value: Double): Double {
+        return if (value >=0) Math.log(value)/Math.log(2.0) else Double.NEGATIVE_INFINITY
+    }
+    fun signExtend(value: Double): Double {
+        val v = value.toLong()
+        var res = v
+        if (v and 0x7FFFFFFF80000000L == 0x80000000L) {
+            res = -1L - (v xor 0xffffffffL)
+        } else if (v and 0x7FFFFFFFFFFF8000L == 0x8000L) {
+            res = v or 0xFFFF0000L
+        } else if (v and 0x7FFFFFFFFFFFFF80L == 0x80L) {
+            res = v or 0xFF00L
+        }
+        return res.toDouble()
+    }
+    fun signCrop(value: Double): Double {
+        val v = value.toLong()
+        var res = v
+        if (v and 0x7FFFFFFF00000000L != 0L) {
+            res = v and 0xFFFFFFFFL
+        } else if (v and 0x00000000FFFF0000L != 0L) {
+            res = v and 0xFFFFL
+        } else if (v and 0x000000000000FF00L != 0L) {
+            res = v and 0xFFL
+        }
+        return res.toDouble()
     }
 }

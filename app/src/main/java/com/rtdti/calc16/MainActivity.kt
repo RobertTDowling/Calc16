@@ -302,7 +302,7 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = " ", { viewModel.pushConstant(formatState.epsilon) }, Keytype.BINOP)
             KeyButton(text = "→ϵ", { viewModel.pop1op({ e -> viewModel.epsilonSet(e)}) }, Keytype.UNOP)
             KeyButton(text = "→.", { viewModel.pop1op({ d -> viewModel.decimalPlacesSet(d.toInt())}) }, Keytype.UNOP)
-            KeyButton(text = " ", { viewModel.pushConstant(formatState.decimalPlaces.toDouble()) }, Keytype.BINOP)
+            ModalKeyButton(text = "⏱", NumberFormat.TIME, viewModel)
             KeyButton(text = "◀", { viewModel.backspaceOrDrop() }, Keytype.CONTROL)
         }
         Row(
@@ -324,8 +324,8 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "[x]", { viewModel.unop({ a -> Math.round(a).toDouble() }) }, Keytype.UNOP)
             KeyButton(text = "⎡x⎤", { viewModel.unop({ a -> Math.ceil(a)}) }, Keytype.UNOP)
             KeyButton(text = "gcd", { viewModel.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = "lcm", { viewModel.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = " ", { viewModel.pushConstant(viewModel.stackDepth().toDouble()) }, Keytype.BINOP)
+            KeyButton(text = "←1", { viewModel.unop({ a -> CalcMath.signExtend(a)}) }, Keytype.UNOP)
+            KeyButton(text = "0→", { viewModel.unop({ a -> CalcMath.signCrop(a) }) }, Keytype.UNOP)
         }
         Row(
             modifier = rowModifier,
@@ -345,8 +345,8 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "sin", { viewModel.unop({ a -> Math.sin(a)}) }, Keytype.TRIG)
             KeyButton(text = "cos", { viewModel.unop({ a -> Math.cos(a)}) }, Keytype.TRIG)
             KeyButton(text = "tan", { viewModel.unop({ a -> Math.tan(a)}) }, Keytype.TRIG)
-            KeyButton(text = "log", { viewModel.unop({ a -> Math.log(a)}) }, Keytype.TRIG)
-            KeyButton(text = "log₂", { viewModel.unop({ a -> Math.log(a)/Math.log(2.0)}) }, Keytype.TRIG)
+            KeyButton(text = "log", { viewModel.unop({ a -> CalcMath.ln(a)}) }, Keytype.TRIG)
+            KeyButton(text = "log₂", { viewModel.unop({ a -> CalcMath.log2(a)}) }, Keytype.TRIG)
             KeyButton(text = "⚬→r", { viewModel.unop({ a -> Math.PI*a/180}) }, Keytype.TRIG)
         }
         Row(
@@ -391,7 +391,7 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "6", { viewModel.padAppend("6") }, Keytype.ENTRY)
             KeyButton(text = "×", { viewModel.binop({ a, b -> a*b}) }, Keytype.BINOP)
             KeyButton(text = btop("y","x",true), { viewModel.binop({ a, b -> Math.pow(a,b)}) }, Keytype.BINOP)
-            KeyButton(text = btop("y10","x"), { viewModel.binop({ a, b -> a*Math.pow(10.0,b)}) }, Keytype.BINOP)
+            KeyButton(text = "E±", { viewModel.padAppendEE() }, Keytype.ENTRY)
         }
         Row(
             modifier = rowModifier,
@@ -412,7 +412,7 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "0", { viewModel.padAppend("0") }, Keytype.ENTRY)
             KeyButton(text = ".", { viewModel.padAppend(".") }, Keytype.ENTRY)
             KeyButton(text = "+", { viewModel.binop({ a, b -> a+b}) }, Keytype.BINOP)
-            KeyButton(text = "√x", { viewModel.unop({ a -> Math.sqrt(a)}) }, Keytype.UNOP)
+            KeyButton(text = "√x", { viewModel.unop({ a -> CalcMath.sqrt(a)}) }, Keytype.UNOP)
             KeyButton(text = "x⇄y", { viewModel.swap() }, Keytype.CONTROL, crowded = true)
         }
     }

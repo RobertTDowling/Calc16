@@ -42,48 +42,9 @@ interface StackFormatter {
         return String.format("%s%d - %d / %d%s", sign, w, n, d, eString)
     }
 }
-
-enum class FloatWay { NUMBER_FORMATTER, LAZY, BY_HAND }
-val Double.mantissa get() = toBits() and 0x000fffffffffffff
-val Double.exponent get() = toBits() and 0x7ff0000000000000 shr 52
 object StackFormatFloat : StackFormatter {
     override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
-        val way = FloatWay.NUMBER_FORMATTER
-        when(way) {
-            FloatWay.BY_HAND -> {
-                val mant = value.mantissa + 0x000fffffffffffff + 1
-                val exp = value.exponent - 1023
-                val str = String.format("%s = %x,%d", value.toString(), mant, exp)
-                return AnnotatedString(str)
-            }
-            FloatWay.NUMBER_FORMATTER -> { // Can't Unit test
-                /* Android NumberFormatter
-                val str = NumberFormatter.withLocale(ULocale.US)// .withLocale(Locale.US)
-                    .grouping(NumberFormatter.GroupingStrategy.OFF)
-                    .precision(Precision.unlimited())
-                    .format(value).toString()
-                 */
-                lateinit var str: String
-                if (value.absoluteValue > 1e16 || value.absoluteValue > 0 && value.absoluteValue < 1e-6 ) {
-                    // Punt on big and small values (but not zero)
-                    str = value.toString()
-                } else {
-                    val nf = DecimalFormat.getInstance()
-                    nf.maximumFractionDigits = 16
-                    nf.maximumIntegerDigits = 16
-                    nf.isGroupingUsed = false
-                    str = nf.format(value)
-                }
-                return AnnotatedString(str)
-            }
-            FloatWay.LAZY -> {
-                val intPart = value.toLong()
-                if (intPart.toDouble() == value) { // Format as an Int if we can
-                    return AnnotatedString(intPart.toString())
-                }
-                return AnnotatedString(value.toString())
-            }
-        }
+        return AnnotatedString(CalcMath.floatString(value))
     }
 }
 
@@ -93,7 +54,7 @@ object StackFormatHex : StackFormatter {
         val error = value - truncated
         val epsilon = formatState.epsilon
         val eString = makeEString (error, epsilon * epsilon)
-        return AnnotatedString(String.format("0x%x%s", truncated, eString))
+        return AnnotatedString(String.format("%s = 0x%x%s", CalcMath.floatString(value), truncated, eString))
     }
 }
 
@@ -130,11 +91,20 @@ object StackFormatSci : StackFormatter {
 object StackFormatPrime : StackFormatter {
     var superscriptFontSizeInt = 0
     override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
-        return CalcMath.primeFactorAnnotatedString(value.toLong(), superscriptFontSizeInt)
+        return AnnotatedString(String.format("%s = ", CalcMath.floatString(value))) +
+            CalcMath.primeFactorAnnotatedString(value.toLong(), superscriptFontSizeInt)
     }
 }
 
-enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
+object StackFormatTime : StackFormatter {
+    override fun format(value: Double, formatState: CalcViewModel.FormatState): AnnotatedString {
+        val hr = Math.floor(value)
+        val min = 60 * (value - hr)
+        return AnnotatedString(String.format("%s = %s", CalcMath.floatString(value), CalcMath.timeString(value)))
+    }
+}
+
+enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI, TIME;
     fun formatter(): StackFormatter {
         return when (this) {
             FLOAT -> StackFormatFloat
@@ -144,6 +114,7 @@ enum class NumberFormat { FLOAT, HEX, IMPROPER, MIXIMPERIAL, PRIME, FIX, SCI;
             PRIME -> StackFormatPrime
             FIX -> StackFormatFix
             SCI -> StackFormatSci
+            TIME -> StackFormatTime
         }
     }
     fun parser(str: String): Double {
