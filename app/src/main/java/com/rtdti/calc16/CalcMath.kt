@@ -259,4 +259,74 @@ object CalcMath {
         }
         return res.toDouble()
     }
+    fun add(a: Double, b: Double): Double { return a+b }
+    fun and(a: Double, b: Double): Double { return a.toLong().and(b.toLong()).toDouble() }
+    fun chs(a: Double): Double { return -a }
+    fun degToRad(a: Double): Double { return Math.PI*a/180 }
+    fun div(a: Double, b: Double): Double { return a/b }
+    fun div2(a: Double): Double { return a/2 }
+    fun inv(a: Double): Double { return 1/a }
+    fun mod(a: Double, b: Double): Double { return a%b }
+    fun mul(a: Double, b: Double): Double { return a*b }
+    fun not(a: Double): Double { return -1.0-a }
+    fun or(a: Double, b: Double): Double { return a.toLong().or(b.toLong()).toDouble() }
+    fun pow10(a: Double): Double { return Math.pow(10.0, a) }
+    fun pow2(a: Double): Double { return Math.pow(2.0, a) }
+    fun radTodDeg(a: Double): Double { return 180*a/Math.PI }
+    fun sub(a: Double, b: Double): Double { return a-b }
+    fun times2(a: Double): Double { return a*2 }
+    fun xor(a: Double, b: Double): Double { return a.toLong().xor(b.toLong()).toDouble() }
+}
+
+enum class CalcOps {
+    ACOS, ADD, AND, ASIN, ATAN, CEIL, CHS, COS, DEG_TO_RAD, DIV, DIV2,
+    DP_FROM, EE, EPS_FROM, EXP, FLOOR, GCD, INV, LCM, LN, LOG10, LOG2,
+    MOD, MUL, NOT, OR, PI, POW10, POW2, RAD_TO_DEG, ROUND, SIGN_CROP,
+    SIGN_EXTEND, SIN, SQRT, SUB, TAN, TIMES2, TO_DP, TO_EPS, XOR, Y_POW_X;
+    fun doOp(viewModel: CalcViewModel): () -> Unit {
+        return when (this) {
+            ACOS -> fun() { viewModel.unop({ a -> Math.acos(a) }) }
+            ADD -> fun() { viewModel.binop({ a, b -> CalcMath.add(a,b) }) }
+            AND -> fun() { viewModel.binop({ a, b -> CalcMath.and(a,b) }) }
+            ASIN -> fun() { viewModel.unop({ a -> Math.asin(a) }) }
+            ATAN -> fun() { viewModel.unop({ a -> Math.atan(a) }) }
+            CEIL -> fun() { viewModel.unop({ a -> Math.ceil(a) }) }
+            CHS -> fun() { viewModel.unop({ a -> CalcMath.chs(a) }) }
+            COS -> fun() { viewModel.unop({ a -> Math.cos(a) }) }
+            DEG_TO_RAD -> fun() { viewModel.unop({ a -> CalcMath.degToRad(a) }) }
+            DIV -> fun() { viewModel.binop({ a, b -> CalcMath.div(a,b) }) }
+            DIV2 -> fun() { viewModel.unop({ a -> CalcMath.div2(a) }) }
+            DP_FROM -> fun() { viewModel.pushConstant(viewModel.formatState.value.decimalPlaces.toDouble()) }
+            EE -> fun() { viewModel.padAppendEE() }
+            EPS_FROM -> fun() { viewModel.pushConstant(viewModel.formatState.value.epsilon) }
+            EXP -> fun() { viewModel.unop({ a -> Math.exp(a) }) }
+            FLOOR -> fun() { viewModel.unop({ a -> Math.floor(a) }) }
+            GCD -> fun() { viewModel.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble() }) }
+            INV -> fun() { viewModel.unop({ a -> CalcMath.inv(a) }) }
+            LCM -> fun() { viewModel.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble() }) }
+            LN -> fun() { viewModel.unop({ a -> Math.log(a) }) }
+            LOG10 -> fun() { viewModel.unop({ a -> CalcMath.log10(a) }) }
+            LOG2 -> fun() { viewModel.unop({ a -> CalcMath.log2(a) }) }
+            MOD -> fun() { viewModel.binop({ a, b -> CalcMath.mod(a,b) }) }
+            MUL -> fun() { viewModel.binop({ a, b -> CalcMath.mul(a,b) }) }
+            NOT -> fun() { viewModel.unop({ a -> CalcMath.not(a) }) }
+            OR -> fun() { viewModel.binop({ a, b -> CalcMath.or(a,b) }) }
+            PI -> fun() { viewModel.pushConstant(Math.PI) }
+            POW10 -> fun() { viewModel.unop({ a -> CalcMath.pow10(a) }) }
+            POW2 -> fun() { viewModel.unop({ a -> CalcMath.pow2(a) }) }
+            RAD_TO_DEG -> fun() { viewModel.unop({ a -> CalcMath.radTodDeg(a) }) }
+            ROUND -> fun() { viewModel.unop({ a -> Math.round(a).toDouble() }) }
+            SIGN_CROP -> fun() { viewModel.unop({ a -> CalcMath.signCrop(a) }) }
+            SIGN_EXTEND -> fun() { viewModel.unop({ a -> CalcMath.signExtend(a) }) }
+            SIN -> fun() { viewModel.unop({ a -> Math.sin(a) }) }
+            SQRT -> fun() { viewModel.unop({ a -> Math.sqrt(a) }) }
+            SUB -> fun() { viewModel.binop({ a, b -> CalcMath.sub(a,b) }) }
+            TAN -> fun() { viewModel.unop({ a -> Math.tan(a) }) }
+            TIMES2 -> fun() { viewModel.unop({ a -> CalcMath.times2(a) }) }
+            TO_DP -> fun() { viewModel.pop1op({ d -> viewModel.decimalPlacesSet(d.toInt()) }) }
+            TO_EPS -> fun() { viewModel.pop1op({ e -> viewModel.epsilonSet(e) }) }
+            XOR -> fun() { viewModel.binop({ a, b -> CalcMath.xor(a,b) }) }
+            Y_POW_X -> fun() { viewModel.binop({ a, b -> Math.pow(a,b) }) }
+        }
+    }
 }
