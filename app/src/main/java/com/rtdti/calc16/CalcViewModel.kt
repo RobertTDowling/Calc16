@@ -3,6 +3,7 @@ package com.rtdti.calc16
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -11,7 +12,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
+class CalcViewModel(private val repository: CalcRepository,
+    val repositoryDispatcher: CoroutineDispatcher = Dispatchers.IO) : ViewModel() {
     data class PadState(val pad: String)
     data class StackState(val stack: List<Double>)
     data class FormatState(val epsilon: Double, val decimalPlaces: Int, val numberFormat: NumberFormat)
@@ -49,9 +51,8 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         updateFormatTable(FormatState(formatState.value.epsilon, decimalPlaces, formatState.value.numberFormat)) }
     fun numberFormatSet(numberFormat: NumberFormat) {
         updateFormatTable(FormatState(formatState.value.epsilon, formatState.value.decimalPlaces, numberFormat)) }
-    fun numberFormatGet() : NumberFormat { return formatState.value.numberFormat }
     fun updateFormatTable(formatState: FormatState) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val formatTable = FormatTable(0, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
             repository.insertOrUpdateFormatTable(formatTable)
         }
@@ -68,13 +69,26 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
 
     fun padIsEmpty() = padState.value.pad.isEmpty()
     fun padAppend(char: String) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             repository.insertOrUpdatePad(padState.value.pad.plus(char))
+        }
+    }
+    fun padAppendEE() = viewModelScope.launch {
+        var pad: String = padState.value.pad
+        if (pad.endsWith("E+")) {
+            pad = pad.removeSuffix("E+").plus("E-")
+        } else if (pad.endsWith("E-")) {
+            pad = pad.removeSuffix("E-").plus("E+")
+        } else {
+            pad = pad.plus("E+")
+        }
+        withContext(repositoryDispatcher) {
+            repository.insertOrUpdatePad(pad)
         }
     }
 
     fun padBackspace() = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             if (!padIsEmpty()) {
                 repository.insertOrUpdatePad(padState.value.pad.substring(0, padState.value.pad.length - 1))
             }
@@ -102,7 +116,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
             // we are in trouble
             debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
             viewModelScope.launch {
-                withContext(Dispatchers.IO) {
+                withContext(repositoryDispatcher) {
                     repository.clearStack()
                 }
             }
@@ -126,7 +140,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
         val epoch = stackLastEpoch.value
         if (epoch > stackFirstEpoch.value) {
             viewModelScope.launch {
-                withContext(Dispatchers.IO) {
+                withContext(repositoryDispatcher) {
                     repository.rollbackStack(epoch)
                 }
             }
@@ -152,13 +166,10 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     private suspend fun doEnter(): WorkingStack {
         // Copy pad to top of stack and clear pad
         val x = try {
-            if (numberFormatGet() == NumberFormat.HEX) {
-                padState.value.pad.toLong(radix = 16).toDouble()
-            } else {
-                padState.value.pad.toDouble()
-            }
+            val formatter = Formatter(formatState.value, 0)
+            formatter.parser(padState.value.pad)
         } catch (e: Exception) {
-            0.0
+            0.0 // Double.NaN // SQLite barfs on this
         }
         val workingStack = WorkingStack(stackState.value)
         workingStack.push(x)
@@ -178,13 +189,13 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
 
     private fun Enter() = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             doEnter()
         }
     }
 
     fun pushConstant(x: Double) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val workingStack = doImpliedEnter()
             workingStack.push(x)
             backupStack(workingStack)
@@ -192,7 +203,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
 
     fun swap() = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(2)) {
                 val b = workingStack.pop()
@@ -205,14 +216,14 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
 
     fun pick(index: Int) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val workingStack = doImpliedEnter()
             workingStack.pick(index)
             backupStack(workingStack)
         }
     }
     fun binop(op: (Double, Double) -> Double) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(2)) {
                 val b = workingStack.pop()
@@ -224,7 +235,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
 
     fun unop(op: (Double) -> Double) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(1)) {
                 val a = workingStack.pop()
@@ -235,7 +246,7 @@ class CalcViewModel(private val repository: CalcRepository) : ViewModel() {
     }
 
     fun pop1op(op: (Double) -> Unit) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
+        withContext(repositoryDispatcher) {
             val workingStack = doImpliedEnter()
             if (workingStack.hasDepth(1)) {
                 val a = workingStack.pop()

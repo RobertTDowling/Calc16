@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,7 +24,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -40,9 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rtdti.calc16.ui.theme.Calc16Theme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -89,15 +87,13 @@ fun ShowDebug(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowStack(viewModel: CalcViewModel) {
-    val pad by viewModel.padState.collectAsState()
+    val pad by viewModel.padState.collectAsStateWithLifecycle()
+    val stackState by viewModel.stackState.collectAsStateWithLifecycle()
+    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    val stackState by viewModel.stackState.collectAsState()
     val stack = stackState.stack
-    val formatState by viewModel.formatState.collectAsState()
-    val formatter = formatState.numberFormat.formatter()
-    StackFormatPrime.superscriptFontSizeInt =
-        (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+    val formatter = Formatter(formatState, (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt())
     if (formatState.decimalPlaces == 666) {
         ShowDemoStack(viewModel)
         return
@@ -108,7 +104,7 @@ fun ShowStack(viewModel: CalcViewModel) {
         modifier = Modifier.fillMaxSize()
     ) {
         for (index in stack.size - 1 downTo 0) {
-            val text = formatter.format(stack[index], formatState)
+            val text = formatter.format(stack[index])
             item {
                 ShowStackString(text, index, viewModel)
             }
@@ -143,20 +139,20 @@ fun ShowStack(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowDemoStack(viewModel: CalcViewModel) {
-    val lazyListState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
     Column(
         verticalArrangement = Arrangement.Bottom,
         modifier = Modifier.fillMaxSize()
     ) {
-        val formatState = CalcViewModel.FormatState(1e-4, 0, NumberFormat.IMPROPER)
-        ShowStackString(NumberFormat.IMPROPER.formatter().format(Math.PI, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.FLOAT.formatter().format(Math.PI, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.FIX.formatter().format(1048576.0, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.HEX.formatter().format(1048576.0, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.PRIME.formatter().format(536870901.0, formatState), 0, viewModel)
-        ShowStackString(NumberFormat.MIXIMPERIAL.formatter().format(1+3/16.0, formatState), 0, viewModel)
-        ShowStackPadString("2024.0211")
+        val eps = 1e-4
+        val dp = 0
+        val ss = (MaterialTheme.typography.headlineSmall.fontSize.value * 0.7).toInt()
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.IMPROPER), ss).format(Math.PI), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.FLOAT), ss).format(Math.PI), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.TIME), ss).format(4.75), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.HEX), ss).format(1048576.0), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.PRIME), ss).format(536870901.0), 0, viewModel)
+        ShowStackString(Formatter(CalcViewModel.FormatState(eps, dp, NumberFormat.MIXIMPERIAL), ss).format(1+3/16.0), 0, viewModel)
+        ShowStackPadString("2024.0218")
     }
 }
 val stackEntryModifier = Modifier.padding(vertical = 0.dp, horizontal = 8.dp)
@@ -211,23 +207,23 @@ enum class Keytype { CONTROL, ENTRY, UNOP, BINOP, TRIG, MODE }
 @Composable
 fun fgColor(typex: Keytype): Color {
     return when (typex) {
-        Keytype.CONTROL -> MaterialTheme.colorScheme.inverseSurface
-        Keytype.ENTRY -> MaterialTheme.colorScheme.primary
-        Keytype.UNOP -> MaterialTheme.colorScheme.secondary
-        Keytype.BINOP -> MaterialTheme.colorScheme.tertiary
-        Keytype.TRIG -> MaterialTheme.colorScheme.tertiary
-        Keytype.MODE -> MaterialTheme.colorScheme.errorContainer
+        Keytype.CONTROL -> MaterialTheme.colorScheme.surface
+        Keytype.ENTRY -> MaterialTheme.colorScheme.onPrimaryContainer
+        Keytype.UNOP -> MaterialTheme.colorScheme.onSecondaryContainer
+        Keytype.BINOP -> MaterialTheme.colorScheme.onTertiaryContainer
+        Keytype.TRIG -> MaterialTheme.colorScheme.onTertiaryContainer
+        Keytype.MODE -> MaterialTheme.colorScheme.onErrorContainer
     }
 }
 @Composable
 fun bgColor(typex: Keytype): Color {
     return when (typex) {
-        Keytype.CONTROL -> MaterialTheme.colorScheme.background
-        Keytype.ENTRY -> MaterialTheme.colorScheme.onPrimary
-        Keytype.UNOP -> MaterialTheme.colorScheme.onSecondary
-        Keytype.BINOP -> MaterialTheme.colorScheme.onTertiary
-        Keytype.TRIG -> MaterialTheme.colorScheme.onSecondary
-        Keytype.MODE -> MaterialTheme.colorScheme.onErrorContainer
+        Keytype.CONTROL -> MaterialTheme.colorScheme.inverseSurface
+        Keytype.ENTRY -> MaterialTheme.colorScheme.primaryContainer
+        Keytype.UNOP -> MaterialTheme.colorScheme.secondaryContainer
+        Keytype.BINOP -> MaterialTheme.colorScheme.tertiaryContainer
+        Keytype.TRIG -> MaterialTheme.colorScheme.secondaryContainer
+        Keytype.MODE -> MaterialTheme.colorScheme.errorContainer
     }
 }
 
@@ -256,13 +252,13 @@ fun KeyButton(text: String, onClick: () -> Unit, type: Keytype, selected: Boolea
 fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selected: Boolean = false, crowded: Boolean = false) {
     Surface(
         shape = MaterialTheme.shapes.medium,
-        color = if (selected) MaterialTheme.colorScheme.error else bgColor(type),
+        color = if (selected) fgColor(type) else bgColor(type),
         modifier = keySurfaceModifier
     ) {
         val mod = if (crowded) keyTextModifier.padding(top = 8.dp) else keyTextModifier.padding(top = 4.dp)
         Text(
             text = text,
-            color = fgColor(type),
+            color = if (selected) bgColor(type) else fgColor(type),
             modifier = mod.clickable { onClick() },
             fontSize = if (crowded)
                 MaterialTheme.typography.titleMedium.fontSize
@@ -271,9 +267,10 @@ fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selecte
         )
     }
 }
+
 @Composable
 fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewModel, crowded: Boolean = false) {
-    val formatState by viewModel.formatState.collectAsState()
+    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     fun onClick() {
         val oldFormat = formatState.numberFormat
         if (oldFormat == newFormat) { // Toggle
@@ -288,7 +285,7 @@ fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewMod
 
 @Composable
 fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
-    val formatState by viewModel.formatState.collectAsState()
+    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     Column (
         modifier = colModifier,
@@ -301,10 +298,10 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
         ) {
             fun noMoreUndos() { coroutineScope.launch { snackbarHostState.showSnackbar("No More Undos")} }
             KeyButton(text = "⤺", { if (viewModel.stackRollBack()) noMoreUndos() }, Keytype.CONTROL)
-            KeyButton(text = " ", { viewModel.pushConstant(formatState.epsilon) }, Keytype.BINOP)
-            KeyButton(text = "→ϵ", { viewModel.pop1op({ e -> viewModel.epsilonSet(e)}) }, Keytype.UNOP)
-            KeyButton(text = "→.", { viewModel.pop1op({ d -> viewModel.decimalPlacesSet(d.toInt())}) }, Keytype.UNOP)
-            KeyButton(text = " ", { viewModel.pushConstant(formatState.decimalPlaces.toDouble()) }, Keytype.BINOP)
+            KeyButton(text = "ϵ→", CalcOps.EPS_FROM.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "→ϵ", CalcOps.TO_EPS.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "→.", CalcOps.TO_DP.doOp(viewModel), Keytype.UNOP)
+            ModalKeyButton(text = "⏱", NumberFormat.TIME, viewModel)
             KeyButton(text = "◀", { viewModel.backspaceOrDrop() }, Keytype.CONTROL)
         }
         Row(
@@ -322,45 +319,45 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = "⎣x⎦", { viewModel.unop({ a -> Math.floor(a)}) }, Keytype.UNOP)
-            KeyButton(text = "[x]", { viewModel.unop({ a -> Math.round(a).toDouble() }) }, Keytype.UNOP)
-            KeyButton(text = "⎡x⎤", { viewModel.unop({ a -> Math.ceil(a)}) }, Keytype.UNOP)
-            KeyButton(text = "gcd", { viewModel.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = "lcm", { viewModel.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = " ", { viewModel.pushConstant(viewModel.stackDepth().toDouble()) }, Keytype.BINOP)
+            KeyButton(text = "⎣x⎦", CalcOps.FLOOR.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "[x]", CalcOps.ROUND.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "⎡x⎤", CalcOps.CEIL.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "gcd", CalcOps.GCD.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "←1", CalcOps.SIGN_EXTEND.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "0→", CalcOps.SIGN_CROP.doOp(viewModel), Keytype.UNOP)
         }
         Row(
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = btop("sin","-1"), { viewModel.unop({ a -> Math.asin(a)}) }, Keytype.TRIG, crowded = true)
-            KeyButton(text = btop("cos","-1"), { viewModel.unop({ a -> Math.acos(a)}) }, Keytype.TRIG, crowded = true)
-            KeyButton(text = btop("tan","-1"), { viewModel.unop({ a -> Math.atan(a)}) }, Keytype.TRIG, crowded = true)
-            KeyButton(text = btop("e","x"), { viewModel.unop({ a -> Math.exp(a)}) }, Keytype.TRIG)
-            KeyButton(text = btop("2","x"), { viewModel.unop({ a -> Math.pow(2.0,a)}) }, Keytype.TRIG)
-            KeyButton(text = "r→⚬", { viewModel.unop({ a -> 180*a/Math.PI}) }, Keytype.TRIG)
+            KeyButton(text = btop("sin","-1"), CalcOps.ASIN.doOp(viewModel), Keytype.TRIG, crowded = true)
+            KeyButton(text = btop("cos","-1"), CalcOps.ACOS.doOp(viewModel), Keytype.TRIG, crowded = true)
+            KeyButton(text = btop("tan","-1"), CalcOps.ATAN.doOp(viewModel), Keytype.TRIG, crowded = true)
+            KeyButton(text = btop("e","x"), CalcOps.EXP.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = btop("2","x"), CalcOps.POW2.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "r→⚬", CalcOps.RAD_TO_DEG.doOp(viewModel), Keytype.TRIG)
         }
         Row(
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = "sin", { viewModel.unop({ a -> Math.sin(a)}) }, Keytype.TRIG)
-            KeyButton(text = "cos", { viewModel.unop({ a -> Math.cos(a)}) }, Keytype.TRIG)
-            KeyButton(text = "tan", { viewModel.unop({ a -> Math.tan(a)}) }, Keytype.TRIG)
-            KeyButton(text = "log", { viewModel.unop({ a -> Math.log(a)}) }, Keytype.TRIG)
-            KeyButton(text = "log₂", { viewModel.unop({ a -> Math.log(a)/Math.log(2.0)}) }, Keytype.TRIG)
-            KeyButton(text = "⚬→r", { viewModel.unop({ a -> Math.PI*a/180}) }, Keytype.TRIG)
+            KeyButton(text = "sin", CalcOps.SIN.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "cos", CalcOps.COS.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "tan", CalcOps.TAN.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "ln", CalcOps.LN.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "log₂", CalcOps.LOG2.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "⚬→r", CalcOps.DEG_TO_RAD.doOp(viewModel), Keytype.TRIG)
         }
         Row(
             modifier = rowModifier,
             horizontalArrangement = rowArragement
         ) {
-            KeyButton(text = "D", { coroutineScope.launch { viewModel.padAppend("d") }}, Keytype.ENTRY)
+            KeyButton(text = "D", { viewModel.padAppend("d") }, Keytype.ENTRY)
             KeyButton(text = "E", { viewModel.padAppend("e") }, Keytype.ENTRY)
             KeyButton(text = "F", { viewModel.padAppend("f") }, Keytype.ENTRY)
-            KeyButton(text = "¬", { viewModel.unop({ a -> -1.0-a}) }, Keytype.UNOP)
-            KeyButton(text = "2×", { viewModel.unop({ a -> a*2.0}) }, Keytype.UNOP)
-            KeyButton(text = "2÷", { viewModel.unop({ a -> a/2.0}) }, Keytype.UNOP)
+            KeyButton(text = "¬", CalcOps.NOT.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "2×", CalcOps.TIMES2.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "2÷", CalcOps.DIV2.doOp(viewModel), Keytype.UNOP)
         }
         Row(
             modifier = rowModifier,
@@ -369,9 +366,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "A", { viewModel.padAppend("a") }, Keytype.ENTRY)
             KeyButton(text = "B", { viewModel.padAppend("b") }, Keytype.ENTRY)
             KeyButton(text = "C", { viewModel.padAppend("c") }, Keytype.ENTRY)
-            KeyButton(text = "∧", { viewModel.binop({ a, b -> a.toLong().and(b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = "∨", { viewModel.binop({ a, b -> a.toLong().or(b.toLong()).toDouble()}) }, Keytype.BINOP)
-            KeyButton(text = "⨁", { viewModel.binop({ a, b -> a.toLong().xor(b.toLong()).toDouble()}) }, Keytype.BINOP)
+            KeyButton(text = "∧", CalcOps.AND.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "∨", CalcOps.OR.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "⨁", CalcOps.XOR.doOp(viewModel), Keytype.BINOP)
         }
         Row(
             modifier = rowModifier,
@@ -380,9 +377,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "7", { viewModel.padAppend("7") }, Keytype.ENTRY)
             KeyButton(text = "8", { viewModel.padAppend("8") }, Keytype.ENTRY)
             KeyButton(text = "9", { viewModel.padAppend("9") }, Keytype.ENTRY)
-            KeyButton(text = "÷", { viewModel.binop({ a, b -> a/b}) }, Keytype.BINOP)
-            KeyButton(text = "1/x", { viewModel.unop({ a -> 1.0/a}) }, Keytype.UNOP)
-            KeyButton(text = "mod", { viewModel.binop({ a, b -> a%b}) }, Keytype.BINOP, crowded = true)
+            KeyButton(text = "÷", CalcOps.DIV.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "1/x", CalcOps.INV.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "mod", CalcOps.MOD.doOp(viewModel), Keytype.BINOP, crowded = true)
         }
         Row(
             modifier = rowModifier,
@@ -391,9 +388,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "4", { viewModel.padAppend("4") }, Keytype.ENTRY)
             KeyButton(text = "5", { viewModel.padAppend("5") }, Keytype.ENTRY)
             KeyButton(text = "6", { viewModel.padAppend("6") }, Keytype.ENTRY)
-            KeyButton(text = "×", { viewModel.binop({ a, b -> a*b}) }, Keytype.BINOP)
-            KeyButton(text = btop("y","x",true), { viewModel.binop({ a, b -> Math.pow(a,b)}) }, Keytype.BINOP)
-            KeyButton(text = btop("y10","x"), { viewModel.binop({ a, b -> a*Math.pow(10.0,b)}) }, Keytype.BINOP)
+            KeyButton(text = "×", CalcOps.MUL.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = btop("y","x",true), CalcOps.Y_POW_X.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "E±", { viewModel.padAppendEE() }, Keytype.ENTRY)
         }
         Row(
             modifier = rowModifier,
@@ -402,8 +399,8 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "1", { viewModel.padAppend("1") }, Keytype.ENTRY)
             KeyButton(text = "2", { viewModel.padAppend("2") }, Keytype.ENTRY)
             KeyButton(text = "3", { viewModel.padAppend("3") }, Keytype.ENTRY)
-            KeyButton(text = "−", { viewModel.binop({ a, b -> a-b}) }, Keytype.BINOP)
-            KeyButton(text = "±", { viewModel.unop({ a -> -a}) }, Keytype.UNOP)
+            KeyButton(text = "−", CalcOps.SUB.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "±", CalcOps.CHS.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "π", { viewModel.pushConstant(Math.PI) }, Keytype.ENTRY)
         }
         Row(
@@ -413,8 +410,8 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "▲", { viewModel.enterOrDup() }, Keytype.CONTROL)
             KeyButton(text = "0", { viewModel.padAppend("0") }, Keytype.ENTRY)
             KeyButton(text = ".", { viewModel.padAppend(".") }, Keytype.ENTRY)
-            KeyButton(text = "+", { viewModel.binop({ a, b -> a+b}) }, Keytype.BINOP)
-            KeyButton(text = "√x", { viewModel.unop({ a -> Math.sqrt(a)}) }, Keytype.UNOP)
+            KeyButton(text = "+", CalcOps.ADD.doOp(viewModel), Keytype.BINOP)
+            KeyButton(text = "√x", CalcOps.SQRT.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "x⇄y", { viewModel.swap() }, Keytype.CONTROL, crowded = true)
         }
     }
