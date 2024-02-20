@@ -169,21 +169,30 @@ open class CalcViewModel(private val repository: CalcRepository,
         }
     }
 
-    private suspend fun backupStack(workingStack: WorkingStack) {
-        var epoch = stackLastEpoch.value + 1
-        // Check for no previous epochs and back up an empty stack
-        if (epoch == 0) {
-            // System.err.print("Backup first (empty)")
+    // This is a hack to initialize the stack database with a clear stack if no stack history was
+    // found, so that there is something to undo back to. The assumption is any stack-changing
+    // operation will call this function indirectly through backupStack() or doEnterThenGetWorkingStack()
+    private suspend fun zerothBackupIfNeededThenGetLastEpoch(): Int {
+        var epoch = stackLastEpoch.value
+        if (epoch < 0) {
+            epoch = 0 // Bump epoch to non-negative
+            System.err.println("Backup first (empty)")
             val emptyStack = WorkingStack(StackState(listOf()))
             repository.insertFullStack(emptyStack.asListStackTable(epoch))
-            epoch += 1
         }
+        return epoch
+    }
+
+    private suspend fun backupStack(workingStack: WorkingStack) {
+        System.err.println(String.format("Entering backupStack with lastEpoch=%d",stackLastEpoch.value))
+        val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }
 
-    private suspend fun doEnter(): WorkingStack {
-        // Copy pad to top of stack and clear pad
+    // In preparation for doing a stack operation, copy pad to top of stack and clear pad
+    // Return the modified working stack for the actual operation to work on
+    private suspend fun doEnterThenGetWorkingStack(): WorkingStack {
         val x = try {
             val formatter = Formatter(formatState.value, 0)
             formatter.parser(padState.value.pad)
@@ -192,16 +201,17 @@ open class CalcViewModel(private val repository: CalcRepository,
         }
         val workingStack = WorkingStack(stackState.value)
         workingStack.push(x)
-        val epoch = stackLastEpoch.value + 1
+        val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
         pruneBackups(epoch)
         repository.insertFullStackClearPad(workingStack.asListStackTable(epoch))
         stackLastEpoch.value = epoch
         return workingStack
     }
-    private suspend fun doImpliedEnter(): WorkingStack {
+
+    private suspend fun doImpliedEnterThenGetWorkingStack(): WorkingStack {
         // Only doEnter if pad isn't empty
         if (!padIsEmpty()) {
-            return doEnter()
+            return doEnterThenGetWorkingStack()
         }
         val workingStack = WorkingStack(stackState.value)
         return workingStack
@@ -209,13 +219,13 @@ open class CalcViewModel(private val repository: CalcRepository,
 
     private fun Enter() = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            doEnter()
+            doEnterThenGetWorkingStack()
         }
     }
 
     fun pushConstant(x: Double) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val workingStack = doImpliedEnter()
+            val workingStack = doImpliedEnterThenGetWorkingStack()
             workingStack.push(x)
             backupStack(workingStack)
         }
@@ -223,7 +233,7 @@ open class CalcViewModel(private val repository: CalcRepository,
 
     fun swap() = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val workingStack = doImpliedEnter()
+            val workingStack = doImpliedEnterThenGetWorkingStack()
             if (workingStack.hasDepth(2)) {
                 val b = workingStack.pop()
                 val a = workingStack.pop()
@@ -236,14 +246,14 @@ open class CalcViewModel(private val repository: CalcRepository,
 
     fun pick(index: Int) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val workingStack = doImpliedEnter()
+            val workingStack = doImpliedEnterThenGetWorkingStack()
             workingStack.pick(index)
             backupStack(workingStack)
         }
     }
     fun binop(op: (Double, Double) -> Double) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val workingStack = doImpliedEnter()
+            val workingStack = doImpliedEnterThenGetWorkingStack()
             if (workingStack.hasDepth(2)) {
                 val b = workingStack.pop()
                 val a = workingStack.pop()
@@ -255,7 +265,7 @@ open class CalcViewModel(private val repository: CalcRepository,
 
     fun unop(op: (Double) -> Double) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val workingStack = doImpliedEnter()
+            val workingStack = doImpliedEnterThenGetWorkingStack()
             if (workingStack.hasDepth(1)) {
                 val a = workingStack.pop()
                 workingStack.push(op(a))
@@ -266,7 +276,7 @@ open class CalcViewModel(private val repository: CalcRepository,
 
     fun pop1op(op: (Double) -> Unit) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val workingStack = doImpliedEnter()
+            val workingStack = doImpliedEnterThenGetWorkingStack()
             if (workingStack.hasDepth(1)) {
                 val a = workingStack.pop()
                 op(a)
@@ -278,7 +288,10 @@ open class CalcViewModel(private val repository: CalcRepository,
     /////////
     // Pad + Stack
     /////////
-    fun backspaceOrDrop(): Job? { // Combo backspace and drop
+
+    // Combo backspace and drop
+    // Return null if nothing was done (pad was clear and stack was empty.. nothing to drop)
+    fun backspaceOrDrop(): Job? {
         if (padIsEmpty()) {
             if (!stackState.value.stack.isEmpty()) {
                 return pop1op({ d -> })
@@ -289,7 +302,9 @@ open class CalcViewModel(private val repository: CalcRepository,
         return null
     }
 
-    fun enterOrDup(): Job? { // Combo enter and dup
+    // Combo enter and dup.
+    // Return null if nothing was done (pad was clear and stack was empty.. nothing to dup)
+    fun enterOrDup(): Job? {
         if (!padIsEmpty()) {
             return Enter()
         } else {
