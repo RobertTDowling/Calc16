@@ -35,7 +35,7 @@ open class CalcViewModel(private val repository: CalcRepository,
         fun isEmpty() = !hasDepth(1)
         fun push(x: Double) = stack.add(0, x)
         fun pop(): Double = stack.removeAt(0)
-        fun pick(depth: Int) = push(stack[depth])
+        fun pick(depth: Int) = try { push(stack[depth]) } catch (_: IndexOutOfBoundsException) {}
     }
 
     val debugString = mutableStateOf("")
