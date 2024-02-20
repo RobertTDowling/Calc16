@@ -23,10 +23,10 @@ open class CalcViewModel(private val repository: CalcRepository,
     private class WorkingStack(stackState: StackState) {
         val stack: MutableList<Double> = stackState.stack.toMutableList()
         fun asListStackTable(epoch: Int) : List<StackTable> {
-            if (stack.isEmpty()) {
-                return listOf(StackTable(0, epoch, -1, 0.0))
-            }
-            return stack.mapIndexed { depth, value -> StackTable(0, epoch, depth, value)}
+            var ret = stack.mapIndexed { depth, value -> StackTable(0, epoch, depth, value)}
+                .toMutableList()
+            ret.add(StackTable(0, epoch, -1, stack.size.toDouble()))
+            return ret
         }
         fun hasDepth(depth: Int) = stack.size >= depth
         fun isEmpty() = !hasDepth(1)
@@ -101,6 +101,7 @@ open class CalcViewModel(private val repository: CalcRepository,
     private val stackFirstEpoch = mutableStateOf(0)
     private val stackLastEpoch = mutableStateOf(0)
     private fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
+        // System.err.println(stl)
         // Quick out if list is empty
         if (stl.isEmpty()) {
             debugString.value = String.format("E: Empty Flow")
@@ -110,22 +111,35 @@ open class CalcViewModel(private val repository: CalcRepository,
         val firstEpoch = sortedStl.minOf { it.epoch }
         val lastEpoch = sortedStl.maxOf { it.epoch }
         // Filter for only lastEpoch
-        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }.filter { it.depth >= 0 }
+        // Expect to see entries depth[0..D-1] with values and and depth[-1] holding D
+        // Example: If the stack has 2 entries, 3.1 and 4.7, expect
+        // depth=0,value=3.1; depth=1,value=4.7; depth=-1,value=2
+        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }
         // Sanity check
-        if (!filteredStl.isEmpty() && (filteredStl.first().depth > 0 || filteredStl.last().depth != filteredStl.size - 1)) {
-            // we are in trouble
-            debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
-            viewModelScope.launch {
-                withContext(repositoryDispatcher) {
-                    repository.clearStack()
-                }
+        if (!filteredStl.isEmpty()) {
+            // System.err.println(String.format("epoch=%d first.d=%d last.d=%d size=%d", filteredStl.first().epoch, filteredStl.first().depth, filteredStl.last().depth, filteredStl.size))
+            // [StackTable(rowid=0, epoch=1, depth=-1, value=1.0), StackTable(rowid=0, epoch=1, depth=0, value=99.9)]
+            // epoch=1 first.d=-1 last.d=0 size=2
+            if (filteredStl.first().depth != -1
+                || filteredStl.last().depth != filteredStl.size - 2
+                || filteredStl.first().value.toInt() != filteredStl.last().depth+1) {
+                // we are in trouble
+                // System.err.println("Error!!!")
+                debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
+                //viewModelScope.launch {
+                //    withContext(repositoryDispatcher) {
+                //        repository.clearStack()
+                //    }
+                //}
+                return null
+            } else {
+                // System.err.println("Valid -----------------")
             }
-            return null
         }
         stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
         stackFirstEpoch.value = firstEpoch
         debugString.value = String.format("Undo Epochs: %d..%d", firstEpoch, lastEpoch)
-        return StackState(filteredStl.map { it.value })
+        return StackState(filteredStl.filter { it.depth >= 0 }.map { it.value })
     }
 
     val stackState = repository.getStack().mapNotNull { stackStateFromStackTableList(it) }
