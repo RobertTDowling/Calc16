@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -102,7 +103,7 @@ open class CalcViewModel(private val repository: CalcRepository,
     /// Stack
     ////////
     private val stackFirstEpoch = mutableStateOf(0)
-    private val stackLastEpoch = mutableStateOf(0)
+    private val stackLastEpoch = mutableStateOf(-1) // <0 Flag: no previous epochs
     private fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
         // System.err.println(stl)
         // Quick out if list is empty
@@ -147,29 +148,36 @@ open class CalcViewModel(private val repository: CalcRepository,
         )
 
     fun stackDepth() : Int = stackState.value.stack.size
-    fun stackRollBack() : Boolean {
+    fun stackRollBack() : Job? {
         val epoch = stackLastEpoch.value
         if (epoch > stackFirstEpoch.value) {
-            viewModelScope.launch {
+            return viewModelScope.launch {
                 withContext(repositoryDispatcher) {
                     repository.rollbackStack(epoch)
                 }
             }
-            return false
         } else {
-            return true
+            return null // No rollbacks possible
         }
     }
 
     private suspend fun pruneBackups(epoch: Int) {
         val firstEpoch = stackFirstEpoch.value
-        if (firstEpoch + 30 < epoch) {
+        val HISTORY_DEPTH = 30
+        if (firstEpoch + HISTORY_DEPTH < epoch) {
             repository.rollbackStack(firstEpoch)
         }
     }
 
     private suspend fun backupStack(workingStack: WorkingStack) {
-        val epoch = stackLastEpoch.value + 1
+        var epoch = stackLastEpoch.value + 1
+        // Check for no previous epochs and back up an empty stack
+        if (epoch == 0) {
+            // System.err.print("Backup first (empty)")
+            val emptyStack = WorkingStack(StackState(listOf()))
+            repository.insertFullStack(emptyStack.asListStackTable(epoch))
+            epoch += 1
+        }
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }

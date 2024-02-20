@@ -231,4 +231,39 @@ class CalcViewModelStackTest {
         assertEquals(CalcViewModel.StackState(listOf(K1-K2)), results.last())
         job.cancel()
     }
+
+    @Test
+    fun rollback1() = runTest {
+        val viewModel = CalcViewModel(FakeCalcRepository())
+        val results = mutableListOf<CalcViewModel.StackState>()
+        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val K1 = 111.0
+        val K2 = 22.0
+        val op = { x: Double, y: Double -> x/y }
+        viewModel.pushConstant(K1).join()
+        viewModel.pushConstant(K2).join() // So far: K2, K1
+        viewModel.binop(op).join()        // Divide: K1/K2
+        val res = viewModel.stackRollBack() // Undo the division, so should see K2, K1 again
+        res?.join()
+        assertNotEquals(null, res)
+        assertEquals(CalcViewModel.StackState(listOf(K2, K1)), results.last())
+        job.cancel()
+    }
+
+    @Test
+    fun rollback2neg() = runTest {
+        val viewModel = CalcViewModel(FakeCalcRepository())
+        val results = mutableListOf<CalcViewModel.StackState>()
+        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val K1 = 111.0
+        viewModel.pushConstant(K1).join() // Push K1
+        var res = viewModel.stackRollBack() // Undo the push
+        res?.join()
+        assertNotEquals(null, res)
+        res = viewModel.stackRollBack() // Undo again.... too far
+        res?.join()
+        assertEquals(null, res)
+        assertEquals(CalcViewModel.StackState(listOf()), results.last())
+        job.cancel()
+    }
 }

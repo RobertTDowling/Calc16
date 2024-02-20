@@ -19,12 +19,17 @@ class FakeCalcRepository : CalcRepository {
             emit(formatTableQueue.receive())
         }
     }
-    val stackTableQueue = Channel<StackTable>(Channel.UNLIMITED)
+    data class StackTableChangeRequest(val isDeleteRequest: Boolean, val deleteEpoch: Int, val stackTable: StackTable)
+    val stackTableQueue = Channel<StackTableChangeRequest>(Channel.UNLIMITED)
     val stackTableList = mutableListOf<StackTable>()
     val stackTableFlow: Flow<List<StackTable>> = flow {
         while (true) {
             val new = stackTableQueue.receive()
-            stackTableList.add(new)
+            if (new.isDeleteRequest) {
+                stackTableList.removeIf { it.epoch == new.deleteEpoch } // Delete only chosen epoch
+            } else {
+                stackTableList.add(new.stackTable)
+            }
             emit(stackTableList)
         }
     }
@@ -41,14 +46,14 @@ class FakeCalcRepository : CalcRepository {
         return stackTableFlow
     }
     override suspend fun insertStack(stackTable: StackTable) {
-        stackTableQueue.send(stackTable)
+        stackTableQueue.send(StackTableChangeRequest(false, 0, stackTable))
     }
     override fun rollbackStack(epoch: Int) {
-        System.err.println("rollbackStack")
+        stackTableQueue.trySend(StackTableChangeRequest(true, epoch, StackTable(0,0,0,0.0)))
     }
     override suspend fun insertFullStack(lst: List<StackTable>) {
         for (st in lst) {
-            stackTableQueue.send(st)
+            stackTableQueue.send(StackTableChangeRequest(false, 0, st))
         }
     }
     override suspend fun insertFullStackClearPad(lst: List<StackTable>) {

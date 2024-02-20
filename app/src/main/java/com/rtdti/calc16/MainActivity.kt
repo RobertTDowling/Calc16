@@ -297,7 +297,7 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             horizontalArrangement = rowArragement
         ) {
             fun noMoreUndos() { coroutineScope.launch { snackbarHostState.showSnackbar("No More Undos")} }
-            KeyButton(text = "⤺", { if (viewModel.stackRollBack()) noMoreUndos() }, Keytype.CONTROL)
+            KeyButton(text = "⤺", { viewModel.stackRollBack() ?: noMoreUndos() }, Keytype.CONTROL)
             KeyButton(text = "ϵ→", CalcOps.EPS_FROM.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "→ϵ", CalcOps.TO_EPS.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "→.", CalcOps.TO_DP.doOp(viewModel), Keytype.UNOP)
