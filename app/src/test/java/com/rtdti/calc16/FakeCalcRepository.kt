@@ -57,7 +57,8 @@ class FakeCalcRepository : CalcRepository {
         }
     }
     override suspend fun insertFullStackClearPad(lst: List<StackTable>) {
-        System.err.println("fun insertFullStackClearPad")
+        insertFullStack(lst)
+        insertOrUpdatePad("")
     }
     override suspend fun insertOrUpdateFormatTable(formatTable: FormatTable) {
         formatTableQueueSend(formatTable)

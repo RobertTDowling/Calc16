@@ -278,24 +278,26 @@ open class CalcViewModel(private val repository: CalcRepository,
     /////////
     // Pad + Stack
     /////////
-    fun backspaceOrDrop() { // Combo backspace and drop
+    fun backspaceOrDrop(): Job? { // Combo backspace and drop
         if (padIsEmpty()) {
             if (!stackState.value.stack.isEmpty()) {
-                pop1op({ d -> })
+                return pop1op({ d -> })
             }
         } else {
-            padBackspace()
+            return padBackspace()
         }
+        return null
     }
 
-    fun enterOrDup() { // Combo enter and dup
+    fun enterOrDup(): Job? { // Combo enter and dup
         if (!padIsEmpty()) {
-            Enter()
+            return Enter()
         } else {
             if (!stackState.value.stack.isEmpty()) {
                 val a = stackState.value.stack.first();
-                pushConstant(a)
+                return pushConstant(a)
             }
         }
+        return null
     }
 }
