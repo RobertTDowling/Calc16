@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class CalcViewModel(private val repository: CalcRepository,
-    val repositoryDispatcher: CoroutineDispatcher = Dispatchers.IO) : ViewModel() {
+open class CalcViewModel(private val repository: CalcRepository,
+                         val repositoryDispatcher: CoroutineDispatcher = Dispatchers.IO) : ViewModel() {
     data class PadState(val pad: String)
     data class StackState(val stack: List<Double>)
     data class FormatState(val epsilon: Double, val decimalPlaces: Int, val numberFormat: NumberFormat)
