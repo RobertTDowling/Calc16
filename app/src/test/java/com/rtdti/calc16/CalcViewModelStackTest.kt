@@ -40,10 +40,14 @@ class CalcViewModelStackTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<CalcViewModel.StackState>()
         val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
-        viewModel.pushConstant(3.14).join()
-        viewModel.pushConstant(2.78).join()
-        System.err.println(results)
-        // assertEquals(StackState"1E+6", results.last())
+        val K1=3.14
+        val K2=2.78
+        viewModel.pushConstant(K1).join()
+        viewModel.pushConstant(K2).join()
+        // System.err.println(results)
+        assertEquals(CalcViewModel.StackState(listOf<Double>()), results.first())
+        assertEquals(CalcViewModel.StackState(listOf<Double>(K1)), results[1])
+        assertEquals(CalcViewModel.StackState(listOf<Double>(K2,K1)), results.last())
         job.cancel()
     }
 
@@ -52,10 +56,11 @@ class CalcViewModelStackTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<CalcViewModel.StackState>()
         val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
-        viewModel.pushConstant(99.9).join()
+        val K1=99.9
+        viewModel.pushConstant(K1).join()
         viewModel.pop1op({_ -> Unit }).join()
-        System.err.println(results)
-        // assertEquals(StackState"1E+6", results.last())
+        // System.err.println(results)
+        assertEquals(CalcViewModel.StackState(listOf<Double>()), results.first())
         job.cancel()
     }
 

@@ -23,6 +23,9 @@ open class CalcViewModel(private val repository: CalcRepository,
     private class WorkingStack(stackState: StackState) {
         val stack: MutableList<Double> = stackState.stack.toMutableList()
         fun asListStackTable(epoch: Int) : List<StackTable> {
+            // Expect to see entries depth[0..D-1] with values and and depth[-1] holding D
+            // Example: If the stack has 2 entries, 3.1 and 4.7, expect
+            // depth=0,value=3.1; depth=1,value=4.7; depth=-1,value=2
             var ret = stack.mapIndexed { depth, value -> StackTable(0, epoch, depth, value)}
                 .toMutableList()
             ret.add(StackTable(0, epoch, -1, stack.size.toDouble()))
@@ -124,13 +127,7 @@ open class CalcViewModel(private val repository: CalcRepository,
                 || filteredStl.last().depth != filteredStl.size - 2
                 || filteredStl.first().value.toInt() != filteredStl.last().depth+1) {
                 // we are in trouble
-                // System.err.println("Error!!!")
                 debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
-                //viewModelScope.launch {
-                //    withContext(repositoryDispatcher) {
-                //        repository.clearStack()
-                //    }
-                //}
                 return null
             } else {
                 // System.err.println("Valid -----------------")
