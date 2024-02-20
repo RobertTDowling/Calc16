@@ -51,6 +51,8 @@ android {
 }
 
 dependencies {
+    // testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")

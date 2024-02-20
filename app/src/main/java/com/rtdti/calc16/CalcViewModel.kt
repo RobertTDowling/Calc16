@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -12,8 +13,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class CalcViewModel(private val repository: CalcRepository,
-    val repositoryDispatcher: CoroutineDispatcher = Dispatchers.IO) : ViewModel() {
+open class CalcViewModel(private val repository: CalcRepository,
+                         val repositoryDispatcher: CoroutineDispatcher = Dispatchers.IO) : ViewModel() {
     data class PadState(val pad: String)
     data class StackState(val stack: List<Double>)
     data class FormatState(val epsilon: Double, val decimalPlaces: Int, val numberFormat: NumberFormat)
@@ -23,16 +24,19 @@ class CalcViewModel(private val repository: CalcRepository,
     private class WorkingStack(stackState: StackState) {
         val stack: MutableList<Double> = stackState.stack.toMutableList()
         fun asListStackTable(epoch: Int) : List<StackTable> {
-            if (stack.isEmpty()) {
-                return listOf(StackTable(0, epoch, -1, 0.0))
-            }
-            return stack.mapIndexed { depth, value -> StackTable(0, epoch, depth, value)}
+            // Expect to see entries depth[0..D-1] with values and and depth[-1] holding D
+            // Example: If the stack has 2 entries, 3.1 and 4.7, expect
+            // depth=0,value=3.1; depth=1,value=4.7; depth=-1,value=2
+            var ret = stack.mapIndexed { depth, value -> StackTable(0, epoch, depth, value)}
+                .toMutableList()
+            ret.add(StackTable(0, epoch, -1, stack.size.toDouble()))
+            return ret
         }
         fun hasDepth(depth: Int) = stack.size >= depth
         fun isEmpty() = !hasDepth(1)
         fun push(x: Double) = stack.add(0, x)
         fun pop(): Double = stack.removeAt(0)
-        fun pick(depth: Int) = push(stack[depth])
+        fun pick(depth: Int) = try { push(stack[depth]) } catch (_: IndexOutOfBoundsException) {}
     }
 
     val debugString = mutableStateOf("")
@@ -99,8 +103,9 @@ class CalcViewModel(private val repository: CalcRepository,
     /// Stack
     ////////
     private val stackFirstEpoch = mutableStateOf(0)
-    private val stackLastEpoch = mutableStateOf(0)
+    private val stackLastEpoch = mutableStateOf(-1) // <0 Flag: no previous epochs
     private fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
+        // System.err.println(stl)
         // Quick out if list is empty
         if (stl.isEmpty()) {
             debugString.value = String.format("E: Empty Flow")
@@ -110,22 +115,29 @@ class CalcViewModel(private val repository: CalcRepository,
         val firstEpoch = sortedStl.minOf { it.epoch }
         val lastEpoch = sortedStl.maxOf { it.epoch }
         // Filter for only lastEpoch
-        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }.filter { it.depth >= 0 }
+        // Expect to see entries depth[0..D-1] with values and and depth[-1] holding D
+        // Example: If the stack has 2 entries, 3.1 and 4.7, expect
+        // depth=0,value=3.1; depth=1,value=4.7; depth=-1,value=2
+        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }
         // Sanity check
-        if (!filteredStl.isEmpty() && (filteredStl.first().depth > 0 || filteredStl.last().depth != filteredStl.size - 1)) {
-            // we are in trouble
-            debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
-            viewModelScope.launch {
-                withContext(repositoryDispatcher) {
-                    repository.clearStack()
-                }
+        if (!filteredStl.isEmpty()) {
+            // System.err.println(String.format("epoch=%d first.d=%d last.d=%d size=%d", filteredStl.first().epoch, filteredStl.first().depth, filteredStl.last().depth, filteredStl.size))
+            // [StackTable(rowid=0, epoch=1, depth=-1, value=1.0), StackTable(rowid=0, epoch=1, depth=0, value=99.9)]
+            // epoch=1 first.d=-1 last.d=0 size=2
+            if (filteredStl.first().depth != -1
+                || filteredStl.last().depth != filteredStl.size - 2
+                || filteredStl.first().value.toInt() != filteredStl.last().depth+1) {
+                // we are in trouble
+                debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
+                return null
+            } else {
+                // System.err.println("Valid -----------------")
             }
-            return null
         }
         stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
         stackFirstEpoch.value = firstEpoch
         debugString.value = String.format("Undo Epochs: %d..%d", firstEpoch, lastEpoch)
-        return StackState(filteredStl.map { it.value })
+        return StackState(filteredStl.filter { it.depth >= 0 }.map { it.value })
     }
 
     val stackState = repository.getStack().mapNotNull { stackStateFromStackTableList(it) }
@@ -136,29 +148,36 @@ class CalcViewModel(private val repository: CalcRepository,
         )
 
     fun stackDepth() : Int = stackState.value.stack.size
-    fun stackRollBack() : Boolean {
+    fun stackRollBack() : Job? {
         val epoch = stackLastEpoch.value
         if (epoch > stackFirstEpoch.value) {
-            viewModelScope.launch {
+            return viewModelScope.launch {
                 withContext(repositoryDispatcher) {
                     repository.rollbackStack(epoch)
                 }
             }
-            return false
         } else {
-            return true
+            return null // No rollbacks possible
         }
     }
 
     private suspend fun pruneBackups(epoch: Int) {
         val firstEpoch = stackFirstEpoch.value
-        if (firstEpoch + 30 < epoch) {
+        val HISTORY_DEPTH = 30
+        if (firstEpoch + HISTORY_DEPTH < epoch) {
             repository.rollbackStack(firstEpoch)
         }
     }
 
     private suspend fun backupStack(workingStack: WorkingStack) {
-        val epoch = stackLastEpoch.value + 1
+        var epoch = stackLastEpoch.value + 1
+        // Check for no previous epochs and back up an empty stack
+        if (epoch == 0) {
+            // System.err.print("Backup first (empty)")
+            val emptyStack = WorkingStack(StackState(listOf()))
+            repository.insertFullStack(emptyStack.asListStackTable(epoch))
+            epoch += 1
+        }
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }
@@ -259,24 +278,26 @@ class CalcViewModel(private val repository: CalcRepository,
     /////////
     // Pad + Stack
     /////////
-    fun backspaceOrDrop() { // Combo backspace and drop
+    fun backspaceOrDrop(): Job? { // Combo backspace and drop
         if (padIsEmpty()) {
             if (!stackState.value.stack.isEmpty()) {
-                pop1op({ d -> })
+                return pop1op({ d -> })
             }
         } else {
-            padBackspace()
+            return padBackspace()
         }
+        return null
     }
 
-    fun enterOrDup() { // Combo enter and dup
+    fun enterOrDup(): Job? { // Combo enter and dup
         if (!padIsEmpty()) {
-            Enter()
+            return Enter()
         } else {
             if (!stackState.value.stack.isEmpty()) {
                 val a = stackState.value.stack.first();
-                pushConstant(a)
+                return pushConstant(a)
             }
         }
+        return null
     }
 }
