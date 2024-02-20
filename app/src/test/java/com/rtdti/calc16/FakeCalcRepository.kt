@@ -12,22 +12,20 @@ class FakeCalcRepository : CalcRepository {
             emit(padQueue.receive())
         }
     }
+    val formatTableQueue = Channel<FormatTable>(Channel.UNLIMITED)
+    suspend fun formatTableQueueSend(ft: FormatTable) { formatTableQueue.send(ft) }
     val formatTableFlow: Flow<FormatTable> = flow {
-        var x = 0
-        while (x < 1) {
-            x++
-            emit(FormatTable(x, 3.14 + x, x * x, "Float"))
+        while (true) {
+            emit(formatTableQueue.receive())
         }
     }
+    val stackTableQueue = Channel<StackTable>(Channel.UNLIMITED)
+    val stackTableList = mutableListOf<StackTable>()
     val stackTableFlow: Flow<List<StackTable>> = flow {
-        var x = 2
-        while (x < 1) {
-            x++
-            var myList: MutableList<StackTable> = mutableListOf()
-            for (i in 0..x - 1) {
-                myList.add(StackTable(x, 5, i, x * 0.1))
-            }
-            emit(myList)
+        while (true) {
+            val new = stackTableQueue.receive()
+            stackTableList.add(new)
+            emit(stackTableList)
         }
     }
     override fun getPad(): Flow<String> {
@@ -43,19 +41,21 @@ class FakeCalcRepository : CalcRepository {
         return stackTableFlow
     }
     override suspend fun insertStack(stackTable: StackTable) {
-        System.err.println("fun insertStack")
+        stackTableQueue.send(stackTable)
     }
     override fun rollbackStack(epoch: Int) {
         System.err.println("rollbackStack")
     }
     override suspend fun insertFullStack(lst: List<StackTable>) {
-        System.err.println("fun insertFullStack")
+        for (st in lst) {
+            stackTableQueue.send(st)
+        }
     }
     override suspend fun insertFullStackClearPad(lst: List<StackTable>) {
         System.err.println("fun insertFullStackClearPad")
     }
     override suspend fun insertOrUpdateFormatTable(formatTable: FormatTable) {
-        System.err.println("fun insertOrUpdateFormatTable")
+        formatTableQueueSend(formatTable)
     }
     override suspend fun insertOrUpdatePad(pad: String) {
         padQueueSend(pad)
