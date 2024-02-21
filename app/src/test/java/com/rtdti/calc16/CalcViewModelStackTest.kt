@@ -262,8 +262,8 @@ class CalcViewModelStackTest {
         assertNotEquals(null, res)
         res = viewModel.stackRollBack() // Undo again.... too far
         res?.join()
-        // assertEquals(null, res)
-        System.err.println(results)
+        assertEquals(null, res)
+        // System.err.println(results)
         assertEquals(listOf<Double>(), results.last().stackState.stack)
         job.cancel()
     }

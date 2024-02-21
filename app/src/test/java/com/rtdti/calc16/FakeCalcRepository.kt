@@ -46,7 +46,7 @@ class FakeCalcRepository : CalcRepository {
     var padTable = String()
     var formatTable = FormatTable(0, 1e-4, 2, "FLOAT")
     val everythingTableFlow: Flow<List<EverythingTable>> = flow {
-        emit(listOf(EverythingTable(stackTableEmptyList.rowid, stackTableEmptyList.epoch,
+        emit(listOf(EverythingTable(stackTableEmptyList.epoch,
             stackTableEmptyList.depth, stackTableEmptyList.value, padTable,
             formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat)))
         while (true) {
@@ -67,7 +67,7 @@ class FakeCalcRepository : CalcRepository {
             for (st in stackTableList) {
                 etl.add(
                     EverythingTable(
-                    0, st.epoch, st.depth, st.value, padTable,
+                        st.epoch, st.depth, st.value, padTable,
                         formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat))
             }
             // System.err.println(etl)
@@ -84,10 +84,6 @@ class FakeCalcRepository : CalcRepository {
         for (st in lst) {
             stackTableInsertQueueSend(st)
         }
-    }
-    override suspend fun insertFullStackClearPad(lst: List<StackTable>) {
-        insertFullStack(lst)
-        insertOrUpdatePad("")
     }
     override suspend fun insertOrUpdateFormatTable(formatTable: FormatTable) {
         formatTableQueueSend(formatTable)

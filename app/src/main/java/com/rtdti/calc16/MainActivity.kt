@@ -110,7 +110,7 @@ fun ShowStack(viewModel: CalcViewModel) {
                 ShowStackString(text, index, viewModel)
             }
         }
-        val LESS_GLITCHY_UI = true
+        val LESS_GLITCHY_UI = false
         if (LESS_GLITCHY_UI) {
             if (stack.isEmpty() && pad.isEmpty()) {
                 item {
@@ -274,7 +274,8 @@ fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewMod
     val everythingState by viewModel.everythingState.collectAsStateWithLifecycle()
     val formatState = everythingState.formatState
     fun onClick() {
-        val oldFormat = formatState.numberFormat
+        // onClick doesn't run at composable time, so need another way to read formatState
+        val oldFormat = viewModel.everythingState.value.formatState.numberFormat
         if (oldFormat == newFormat) { // Toggle
             viewModel.numberFormatSet(NumberFormat.FLOAT)
         } else {

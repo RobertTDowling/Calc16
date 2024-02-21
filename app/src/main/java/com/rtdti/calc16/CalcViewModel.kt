@@ -51,7 +51,7 @@ open class CalcViewModel(private val repository: CalcRepository,
         // Quick out if list is empty
         if (etl.isEmpty()) {
             debugString.value = String.format("E: Empty Flow")
-            return null
+            return INIT_EVERYTHING_STATE
         }
         val sortedEtl =
             etl.sortedBy { it.depth }// .sortedWith(compareBy<StackTable>{ it.epoch }.thenBy{ it.depth })
@@ -112,7 +112,7 @@ open class CalcViewModel(private val repository: CalcRepository,
         updateFormatTable(FormatState(everythingState.value.formatState.epsilon, everythingState.value.formatState.decimalPlaces, numberFormat)) }
     fun updateFormatTable(formatState: FormatState) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val formatTable = FormatTable(0, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
+            val formatTable = FormatTable(1, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
             repository.insertOrUpdateFormatTable(formatTable)
         }
     }
@@ -188,7 +188,6 @@ open class CalcViewModel(private val repository: CalcRepository,
     }
 
     private suspend fun backupStack(workingStack: WorkingStack) {
-        System.err.println(String.format("Entering backupStack with lastEpoch=%d",stackLastEpoch.value))
         val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
@@ -207,7 +206,8 @@ open class CalcViewModel(private val repository: CalcRepository,
         workingStack.push(x)
         val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
         pruneBackups(epoch)
-        repository.insertFullStackClearPad(workingStack.asListStackTable(epoch))
+        repository.insertFullStack(workingStack.asListStackTable(epoch))
+        repository.insertOrUpdatePad("")
         stackLastEpoch.value = epoch
         return workingStack
     }
