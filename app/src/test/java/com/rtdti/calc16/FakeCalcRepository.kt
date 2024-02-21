@@ -40,13 +40,15 @@ class FakeCalcRepository : CalcRepository {
                 0, "", StackTable(0, 0, 0, 0.0),
                 formatTable))
     }
-
-    val stackTableEmptyList =
-        StackTable(1, 0, -1, 0.0)
+    // These things should match CalcViewModel.INIT_EVERYTHING_STATE
+    val stackTableEmptyList = StackTable(1, 0, -1, 0.0)
     val stackTableList = mutableListOf<StackTable>(stackTableEmptyList)
     var padTable = String()
     var formatTable = FormatTable(0, 1e-4, 2, "FLOAT")
     val everythingTableFlow: Flow<List<EverythingTable>> = flow {
+        emit(listOf(EverythingTable(stackTableEmptyList.rowid, stackTableEmptyList.epoch,
+            stackTableEmptyList.depth, stackTableEmptyList.value, padTable,
+            formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat)))
         while (true) {
             val req = everythingQueue.receive()
             if (req.isPadChange) {

@@ -91,8 +91,8 @@ open class CalcViewModel(private val repository: CalcRepository,
         StackState(listOf()),
         PadState(""),
         FormatState(1e-4, 2, NumberFormat.FLOAT),
-        -1,
-        -1
+        0,
+        0,
     )
     val everythingState = repository.getEverythingTable().mapNotNull { everythingStateFromEverythingTableList(it) }
         .stateIn(
