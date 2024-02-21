@@ -296,9 +296,9 @@ enum class CalcOps {
             DEG_TO_RAD -> fun() { viewModel.unop({ a -> CalcMath.degToRad(a) }) }
             DIV -> fun() { viewModel.binop({ a, b -> CalcMath.div(a,b) }) }
             DIV2 -> fun() { viewModel.unop({ a -> CalcMath.div2(a) }) }
-            DP_FROM -> fun() { viewModel.pushConstant(viewModel.formatState.value.decimalPlaces.toDouble()) }
+            DP_FROM -> fun() { viewModel.pushConstant(viewModel.everythingState.value.formatState.decimalPlaces.toDouble()) }
             EE -> fun() { viewModel.padAppendEE() }
-            EPS_FROM -> fun() { viewModel.pushConstant(viewModel.formatState.value.epsilon) }
+            EPS_FROM -> fun() { viewModel.pushConstant(viewModel.everythingState.value.formatState.epsilon) }
             EXP -> fun() { viewModel.unop({ a -> Math.exp(a) }) }
             FLOOR -> fun() { viewModel.unop({ a -> Math.floor(a) }) }
             GCD -> fun() { viewModel.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble() }) }

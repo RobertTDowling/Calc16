@@ -36,7 +36,7 @@ class CalcViewModelPadTest {
     fun getPadState() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("a").join()
         viewModel.padAppend("b").join()
         viewModel.padAppend("c").join()
@@ -58,7 +58,7 @@ class CalcViewModelPadTest {
     fun padAppend()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("0").join()
         viewModel.padAppend("1").join()
         viewModel.padAppend("2").join()
@@ -83,7 +83,7 @@ class CalcViewModelPadTest {
     fun padBackspace()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padBackspace().join()
         viewModel.padBackspace().join()
         assertEquals("", results.last())
@@ -94,7 +94,7 @@ class CalcViewModelPadTest {
     fun padAppendBackspace1()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("0").join()
         viewModel.padAppend("1").join()
         viewModel.padAppend("2").join()
@@ -113,7 +113,7 @@ class CalcViewModelPadTest {
     fun padAppendBackspace2()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("0").join()
         viewModel.padBackspace().join()
         viewModel.padAppend("1").join()
@@ -130,7 +130,7 @@ class CalcViewModelPadTest {
     fun padAppendEE1Pos()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("1").join()
         viewModel.padAppendEE().join()
         viewModel.padAppend("6").join()
@@ -142,7 +142,7 @@ class CalcViewModelPadTest {
     fun padAppendEE2Pos()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{p->p.pad}.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("f").join()
         viewModel.padAppend("e").join()
         viewModel.padAppendEE().join()
@@ -155,7 +155,7 @@ class CalcViewModelPadTest {
     fun padAppendEE3Pos()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{ p -> p.pad }.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("1").join()
         viewModel.padAppendEE().join()
         viewModel.padAppendEE().join()
@@ -168,7 +168,7 @@ class CalcViewModelPadTest {
     fun padAppendEE1Neg()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{ p -> p.pad }.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("1").join()
         viewModel.padAppendEE().join()
         viewModel.padBackspace().join()
@@ -181,7 +181,7 @@ class CalcViewModelPadTest {
     fun padAppendEE2Neg()  = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
         val results = mutableListOf<String>()
-        val job = launch(testDispatcher) { viewModel.padState.map{ p -> p.pad }.toList(results) }
+        val job = launch(testDispatcher) { viewModel.everythingState.map{it.padState.pad}.toList(results) }
         viewModel.padAppend("1").join()
         viewModel.padAppendEE().join()
         viewModel.padBackspace().join()
