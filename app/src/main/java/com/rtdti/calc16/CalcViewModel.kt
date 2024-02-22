@@ -151,7 +151,7 @@ open class CalcViewModel(private val repository: CalcRepository,
     /// Stack
     ////////
     private val stackFirstEpoch = mutableStateOf(0)
-    private val stackLastEpoch = mutableStateOf(-1) // <0 Flag: no previous epochs
+    private val stackLastEpoch = mutableStateOf(0)
     fun stackRollBack() : Job? {
         val epoch = stackLastEpoch.value
         if (epoch > stackFirstEpoch.value) {
@@ -173,22 +173,8 @@ open class CalcViewModel(private val repository: CalcRepository,
         }
     }
 
-    // This is a hack to initialize the stack database with a clear stack if no stack history was
-    // found, so that there is something to undo back to. The assumption is any stack-changing
-    // operation will call this function indirectly through backupStack() or doEnterThenGetWorkingStack()
-    private suspend fun zerothBackupIfNeededThenGetLastEpoch(): Int {
-        var epoch = stackLastEpoch.value
-        if (epoch < 0) {
-            epoch = 0 // Bump epoch to non-negative
-            System.err.println("Backup first (empty)")
-            val emptyStack = WorkingStack(StackState(listOf()))
-            repository.insertFullStack(emptyStack.asListStackTable(epoch))
-        }
-        return epoch
-    }
-
     private suspend fun backupStack(workingStack: WorkingStack) {
-        val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
+        val epoch = stackLastEpoch.value + 1
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
     }
@@ -204,7 +190,7 @@ open class CalcViewModel(private val repository: CalcRepository,
         }
         val workingStack = WorkingStack(everythingState.value.stackState)
         workingStack.push(x)
-        val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
+        val epoch = stackLastEpoch.value + 1
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
         repository.insertOrUpdatePad("")
