@@ -18,8 +18,8 @@ open class CalcViewModel(private val repository: CalcRepository,
     data class PadState(val pad: String)
     data class StackState(val stack: List<Double>)
     data class FormatState(val epsilon: Double, val decimalPlaces: Int, val numberFormat: NumberFormat)
-
-    // fun PadState.isEmpty() : Boolean = pad.isEmpty()
+    data class EverythingState(val stackState: StackState, val padState: PadState, val formatState: FormatState,
+                               val firstEpoch: Int, val lastEpoch: Int)
 
     private class WorkingStack(stackState: StackState) {
         val stack: MutableList<Double> = stackState.stack.toMutableList()
@@ -41,44 +41,92 @@ open class CalcViewModel(private val repository: CalcRepository,
 
     val debugString = mutableStateOf("")
     //////
-    // Format Parameters
+    // Everything
     //////
-    val formatState = repository.getFormatTable().mapNotNull { it?.let {FormatState(it.epsilon, it.decimalPlaces, NumberFormat.valueOf(it.numberFormat))} }
+    private fun everythingStateFromEverythingTableList(etl: List<EverythingTable>): EverythingState? {
+        // What comes in is a List<EverythingTable>
+        // Want to create an EverythingState object from that, which contains a list and other
+        // things, but is not a list itself
+        // System.err.println(stl)
+        // Quick out if list is empty
+        if (etl.isEmpty()) {
+            debugString.value = String.format("E: Empty Flow")
+            return INIT_EVERYTHING_STATE
+        }
+        val sortedEtl =
+            etl.sortedBy { it.depth }// .sortedWith(compareBy<StackTable>{ it.epoch }.thenBy{ it.depth })
+        val firstEpoch = sortedEtl.minOf { it.epoch }
+        val lastEpoch = sortedEtl.maxOf { it.epoch }
+        // Filter for only lastEpoch
+        // Expect to see entries depth[0..D-1] with values and and depth[-1] holding D
+        // Example: If the stack has 2 entries, 3.1 and 4.7, expect
+        // depth=0,value=3.1; depth=1,value=4.7; depth=-1,value=2
+        val filteredEtl = sortedEtl.filter { it.epoch == lastEpoch }
+        // Sanity check
+        if (!filteredEtl.isEmpty()) {
+            // System.err.println(String.format("epoch=%d first.d=%d last.d=%d size=%d", filteredStl.first().epoch, filteredStl.first().depth, filteredStl.last().depth, filteredStl.size))
+            // [StackTable(rowid=0, epoch=1, depth=-1, value=1.0), StackTable(rowid=0, epoch=1, depth=0, value=99.9)]
+            // epoch=1 first.d=-1 last.d=0 size=2
+            if (filteredEtl.first().depth != -1
+                || filteredEtl.last().depth != filteredEtl.size - 2
+                || filteredEtl.first().value.toInt() != filteredEtl.last().depth + 1
+            ) {
+                // we are in trouble
+                debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
+                return null
+            } else {
+                // System.err.println("Valid -----------------")
+            }
+        }
+        stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
+        stackFirstEpoch.value = firstEpoch
+        debugString.value = String.format("Undo Epochs: %d..%d", firstEpoch, lastEpoch)
+        val lastEt = filteredEtl.last()
+        val stackState = StackState(filteredEtl.filter { it.depth >= 0 }.map { it.value })
+        val padState = PadState(lastEt.pad)
+        val formatState = FormatState(lastEt.epsilon, lastEt.decimalPlaces, NumberFormat.valueOf(lastEt.numberFormat))
+        return EverythingState(stackState, padState, formatState, firstEpoch, lastEpoch)
+    }
+    val INIT_EVERYTHING_STATE = EverythingState(
+        StackState(listOf()),
+        PadState(""),
+        FormatState(1e-4, 2, NumberFormat.FLOAT),
+        0,
+        0,
+    )
+    val everythingState = repository.getEverythingTable().mapNotNull { everythingStateFromEverythingTableList(it) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(500L),
-            initialValue = FormatState(1e-4, 2, NumberFormat.FLOAT)
+            initialValue = INIT_EVERYTHING_STATE
         )
+    
+    //////
+    // Format Parameters
+    //////
     fun epsilonSet(epsilon: Double) {
-        updateFormatTable(FormatState(epsilon, formatState.value.decimalPlaces, formatState.value.numberFormat)) }
+        updateFormatTable(FormatState(epsilon, everythingState.value.formatState.decimalPlaces, everythingState.value.formatState.numberFormat)) }
     fun decimalPlacesSet(decimalPlaces: Int) {
-        updateFormatTable(FormatState(formatState.value.epsilon, decimalPlaces, formatState.value.numberFormat)) }
+        updateFormatTable(FormatState(everythingState.value.formatState.epsilon, decimalPlaces, everythingState.value.formatState.numberFormat)) }
     fun numberFormatSet(numberFormat: NumberFormat) {
-        updateFormatTable(FormatState(formatState.value.epsilon, formatState.value.decimalPlaces, numberFormat)) }
+        updateFormatTable(FormatState(everythingState.value.formatState.epsilon, everythingState.value.formatState.decimalPlaces, numberFormat)) }
     fun updateFormatTable(formatState: FormatState) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            val formatTable = FormatTable(0, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
+            val formatTable = FormatTable(1, formatState.epsilon, formatState.decimalPlaces, formatState.numberFormat.toString())
             repository.insertOrUpdateFormatTable(formatTable)
         }
     }
     ////////
     /// Pad
     ////////
-    val padState = repository.getPad().map { PadState(it ?: "") }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(500L),
-            initialValue = PadState("")
-        )
-
-    fun padIsEmpty() = padState.value.pad.isEmpty()
+    fun padIsEmpty() = everythingState.value.padState.pad.isEmpty()
     fun padAppend(char: String) = viewModelScope.launch {
         withContext(repositoryDispatcher) {
-            repository.insertOrUpdatePad(padState.value.pad.plus(char))
+            repository.insertOrUpdatePad(everythingState.value.padState.pad.plus(char))
         }
     }
     fun padAppendEE() = viewModelScope.launch {
-        var pad: String = padState.value.pad
+        var pad: String = everythingState.value.padState.pad
         if (pad.endsWith("E+")) {
             pad = pad.removeSuffix("E+").plus("E-")
         } else if (pad.endsWith("E-")) {
@@ -94,7 +142,7 @@ open class CalcViewModel(private val repository: CalcRepository,
     fun padBackspace() = viewModelScope.launch {
         withContext(repositoryDispatcher) {
             if (!padIsEmpty()) {
-                repository.insertOrUpdatePad(padState.value.pad.substring(0, padState.value.pad.length - 1))
+                repository.insertOrUpdatePad(everythingState.value.padState.pad.substring(0, everythingState.value.padState.pad.length - 1))
             }
         }
     }
@@ -104,50 +152,6 @@ open class CalcViewModel(private val repository: CalcRepository,
     ////////
     private val stackFirstEpoch = mutableStateOf(0)
     private val stackLastEpoch = mutableStateOf(-1) // <0 Flag: no previous epochs
-    private fun stackStateFromStackTableList(stl: List<StackTable>): StackState? {
-        // System.err.println(stl)
-        // Quick out if list is empty
-        if (stl.isEmpty()) {
-            debugString.value = String.format("E: Empty Flow")
-            return null
-        }
-        val sortedStl = stl.sortedBy { it.depth }// .sortedWith(compareBy<StackTable>{ it.epoch }.thenBy{ it.depth })
-        val firstEpoch = sortedStl.minOf { it.epoch }
-        val lastEpoch = sortedStl.maxOf { it.epoch }
-        // Filter for only lastEpoch
-        // Expect to see entries depth[0..D-1] with values and and depth[-1] holding D
-        // Example: If the stack has 2 entries, 3.1 and 4.7, expect
-        // depth=0,value=3.1; depth=1,value=4.7; depth=-1,value=2
-        val filteredStl = sortedStl.filter { it.epoch == lastEpoch }
-        // Sanity check
-        if (!filteredStl.isEmpty()) {
-            // System.err.println(String.format("epoch=%d first.d=%d last.d=%d size=%d", filteredStl.first().epoch, filteredStl.first().depth, filteredStl.last().depth, filteredStl.size))
-            // [StackTable(rowid=0, epoch=1, depth=-1, value=1.0), StackTable(rowid=0, epoch=1, depth=0, value=99.9)]
-            // epoch=1 first.d=-1 last.d=0 size=2
-            if (filteredStl.first().depth != -1
-                || filteredStl.last().depth != filteredStl.size - 2
-                || filteredStl.first().value.toInt() != filteredStl.last().depth+1) {
-                // we are in trouble
-                debugString.value = String.format("Invalid Epoch: %d..%d", firstEpoch, lastEpoch)
-                return null
-            } else {
-                // System.err.println("Valid -----------------")
-            }
-        }
-        stackLastEpoch.value = lastEpoch // FIXME: Seems this should be bundled into StackState
-        stackFirstEpoch.value = firstEpoch
-        debugString.value = String.format("Undo Epochs: %d..%d", firstEpoch, lastEpoch)
-        return StackState(filteredStl.filter { it.depth >= 0 }.map { it.value })
-    }
-
-    val stackState = repository.getStack().mapNotNull { stackStateFromStackTableList(it) }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L),
-            initialValue = StackState(listOf())
-        )
-
-    fun stackDepth() : Int = stackState.value.stack.size
     fun stackRollBack() : Job? {
         val epoch = stackLastEpoch.value
         if (epoch > stackFirstEpoch.value) {
@@ -184,7 +188,6 @@ open class CalcViewModel(private val repository: CalcRepository,
     }
 
     private suspend fun backupStack(workingStack: WorkingStack) {
-        System.err.println(String.format("Entering backupStack with lastEpoch=%d",stackLastEpoch.value))
         val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
         pruneBackups(epoch)
         repository.insertFullStack(workingStack.asListStackTable(epoch))
@@ -194,16 +197,17 @@ open class CalcViewModel(private val repository: CalcRepository,
     // Return the modified working stack for the actual operation to work on
     private suspend fun doEnterThenGetWorkingStack(): WorkingStack {
         val x = try {
-            val formatter = Formatter(formatState.value, 0)
-            formatter.parser(padState.value.pad)
+            val formatter = Formatter(everythingState.value.formatState, 0)
+            formatter.parser(everythingState.value.padState.pad)
         } catch (e: Exception) {
             0.0 // Double.NaN // SQLite barfs on this
         }
-        val workingStack = WorkingStack(stackState.value)
+        val workingStack = WorkingStack(everythingState.value.stackState)
         workingStack.push(x)
         val epoch = zerothBackupIfNeededThenGetLastEpoch() + 1
         pruneBackups(epoch)
-        repository.insertFullStackClearPad(workingStack.asListStackTable(epoch))
+        repository.insertFullStack(workingStack.asListStackTable(epoch))
+        repository.insertOrUpdatePad("")
         stackLastEpoch.value = epoch
         return workingStack
     }
@@ -213,7 +217,7 @@ open class CalcViewModel(private val repository: CalcRepository,
         if (!padIsEmpty()) {
             return doEnterThenGetWorkingStack()
         }
-        val workingStack = WorkingStack(stackState.value)
+        val workingStack = WorkingStack(everythingState.value.stackState)
         return workingStack
     }
 
@@ -293,7 +297,7 @@ open class CalcViewModel(private val repository: CalcRepository,
     // Return null if nothing was done (pad was clear and stack was empty.. nothing to drop)
     fun backspaceOrDrop(): Job? {
         if (padIsEmpty()) {
-            if (!stackState.value.stack.isEmpty()) {
+            if (!everythingState.value.stackState.stack.isEmpty()) {
                 return pop1op({ d -> })
             }
         } else {
@@ -308,8 +312,8 @@ open class CalcViewModel(private val repository: CalcRepository,
         if (!padIsEmpty()) {
             return Enter()
         } else {
-            if (!stackState.value.stack.isEmpty()) {
-                val a = stackState.value.stack.first();
+            if (!everythingState.value.stackState.stack.isEmpty()) {
+                val a = everythingState.value.stackState.stack.first();
                 return pushConstant(a)
             }
         }

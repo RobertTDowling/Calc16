@@ -87,9 +87,10 @@ fun ShowDebug(viewModel: CalcViewModel) {
 
 @Composable
 fun ShowStack(viewModel: CalcViewModel) {
-    val pad by viewModel.padState.collectAsStateWithLifecycle()
-    val stackState by viewModel.stackState.collectAsStateWithLifecycle()
-    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
+    val everythingState by viewModel.everythingState.collectAsStateWithLifecycle()
+    val pad = everythingState.padState.pad
+    val stackState = everythingState.stackState
+    val formatState = everythingState.formatState
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val stack = stackState.stack
@@ -109,21 +110,21 @@ fun ShowStack(viewModel: CalcViewModel) {
                 ShowStackString(text, index, viewModel)
             }
         }
-        val LESS_GLITCHY_UI = true
+        val LESS_GLITCHY_UI = false
         if (LESS_GLITCHY_UI) {
-            if (stack.isEmpty() && pad.pad.isEmpty()) {
+            if (stack.isEmpty() && pad.isEmpty()) {
                 item {
                     ShowStackString(AnnotatedString("Empty"), -1, viewModel)
                 }
             }
             item {
-                ShowStackPadString(pad.pad)
+                ShowStackPadString(pad)
             }
         } else {
             /* Better aesthetic UI, but due to asynch DB updates, can glitch */
-            if (!pad.pad.isEmpty()) {
+            if (!pad.isEmpty()) {
                 item {
-                    ShowStackPadString(pad.pad)
+                    ShowStackPadString(pad)
                 }
             } else if (stack.isEmpty()) {
                 item {
@@ -270,9 +271,11 @@ fun KeyButton(text: AnnotatedString, onClick: () -> Unit, type: Keytype, selecte
 
 @Composable
 fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewModel, crowded: Boolean = false) {
-    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
+    val everythingState by viewModel.everythingState.collectAsStateWithLifecycle()
+    val formatState = everythingState.formatState
     fun onClick() {
-        val oldFormat = formatState.numberFormat
+        // onClick doesn't run at composable time, so need another way to read formatState
+        val oldFormat = viewModel.everythingState.value.formatState.numberFormat
         if (oldFormat == newFormat) { // Toggle
             viewModel.numberFormatSet(NumberFormat.FLOAT)
         } else {
@@ -285,7 +288,6 @@ fun ModalKeyButton(text: String, newFormat: NumberFormat, viewModel: CalcViewMod
 
 @Composable
 fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
-    val formatState by viewModel.formatState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     Column (
         modifier = colModifier,

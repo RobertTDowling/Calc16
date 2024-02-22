@@ -5,60 +5,85 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class FakeCalcRepository : CalcRepository {
-    val padQueue = Channel<String>(Channel.UNLIMITED)
-    suspend fun padQueueSend(s: String) { padQueue.send(s) }
-    val padStringFlow: Flow<String> = flow {
-        while (true) {
-            emit(padQueue.receive())
-        }
+    data class EverythingChangeRequest(
+        val isPadChange: Boolean,
+        val isStackInsert: Boolean,
+        val isStackDelete: Boolean,
+        val isFormatChange: Boolean,
+        val deleteEpoch: Int,
+        val pad: String,
+        val stackTable: StackTable,
+        var formatTable: FormatTable
+    )
+    val everythingQueue = Channel<EverythingChangeRequest>(Channel.UNLIMITED)
+    suspend fun padQueueSend(pad: String) {
+        everythingQueue.send(
+            EverythingChangeRequest(true, false, false, false,
+                0, pad, StackTable(0, 0, 0, 0.0),
+                FormatTable(0, 0.0, 0, "FLOAT")))
     }
-    val formatTableQueue = Channel<FormatTable>(Channel.UNLIMITED)
-    suspend fun formatTableQueueSend(ft: FormatTable) { formatTableQueue.send(ft) }
-    val formatTableFlow: Flow<FormatTable> = flow {
-        while (true) {
-            emit(formatTableQueue.receive())
-        }
+    suspend fun stackTableInsertQueueSend(stackTable: StackTable) {
+        everythingQueue.send(
+            EverythingChangeRequest(false, true, false, false,
+                0, "", stackTable,
+                FormatTable(0, 0.0, 0, "FLOAT")))
     }
-    data class StackTableChangeRequest(val isDeleteRequest: Boolean, val deleteEpoch: Int, val stackTable: StackTable)
-    val stackTableQueue = Channel<StackTableChangeRequest>(Channel.UNLIMITED)
-    val stackTableList = mutableListOf<StackTable>()
-    val stackTableFlow: Flow<List<StackTable>> = flow {
+    fun stackTableDeleteQueueSend(epoch: Int) {
+        everythingQueue.trySend(
+            EverythingChangeRequest(false, false, true, false,
+                epoch, "", StackTable(0, 0, 0, 0.0),
+                FormatTable(0, 0.0, 0, "FLOAT")))
+    }
+    suspend fun formatTableQueueSend(formatTable: FormatTable) {
+        everythingQueue.send(
+            EverythingChangeRequest(false, false, false, true,
+                0, "", StackTable(0, 0, 0, 0.0),
+                formatTable))
+    }
+    // These things should match CalcViewModel.INIT_EVERYTHING_STATE
+    val stackTableEmptyList = StackTable(1, 0, -1, 0.0)
+    val stackTableList = mutableListOf<StackTable>(stackTableEmptyList)
+    var padTable = String()
+    var formatTable = FormatTable(0, 1e-4, 2, "FLOAT")
+    val everythingTableFlow: Flow<List<EverythingTable>> = flow {
+        emit(listOf(EverythingTable(stackTableEmptyList.epoch,
+            stackTableEmptyList.depth, stackTableEmptyList.value, padTable,
+            formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat)))
         while (true) {
-            val new = stackTableQueue.receive()
-            if (new.isDeleteRequest) {
-                stackTableList.removeIf { it.epoch == new.deleteEpoch } // Delete only chosen epoch
-            } else {
-                stackTableList.add(new.stackTable)
+            val req = everythingQueue.receive()
+            if (req.isPadChange) {
+                padTable = req.pad
             }
-            emit(stackTableList)
+            if (req.isFormatChange) {
+                formatTable = req.formatTable
+            }
+            if (req.isStackDelete) {
+                stackTableList.removeIf { it.epoch == req.deleteEpoch } // Delete only chosen epoch
+            }
+            if (req.isStackInsert) {
+                stackTableList.add(req.stackTable)
+            }
+            val etl = mutableListOf<EverythingTable>()
+            for (st in stackTableList) {
+                etl.add(
+                    EverythingTable(
+                        st.epoch, st.depth, st.value, padTable,
+                        formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat))
+            }
+            // System.err.println(etl)
+            emit(etl)
         }
-    }
-    override fun getPad(): Flow<String> {
-        return padStringFlow
-    }
-    override suspend fun clearStack() {
-        System.err.println("fun clearStack")
-    }
-    override fun getFormatTable(): Flow<FormatTable> {
-        return formatTableFlow
-    }
-    override fun getStack(): Flow<List<StackTable>> {
-        return stackTableFlow
     }
     override suspend fun insertStack(stackTable: StackTable) {
-        stackTableQueue.send(StackTableChangeRequest(false, 0, stackTable))
+        stackTableInsertQueueSend(stackTable)
     }
     override fun rollbackStack(epoch: Int) {
-        stackTableQueue.trySend(StackTableChangeRequest(true, epoch, StackTable(0,0,0,0.0)))
+        stackTableDeleteQueueSend(epoch)
     }
     override suspend fun insertFullStack(lst: List<StackTable>) {
         for (st in lst) {
-            stackTableQueue.send(StackTableChangeRequest(false, 0, st))
+            stackTableInsertQueueSend(st)
         }
-    }
-    override suspend fun insertFullStackClearPad(lst: List<StackTable>) {
-        insertFullStack(lst)
-        insertOrUpdatePad("")
     }
     override suspend fun insertOrUpdateFormatTable(formatTable: FormatTable) {
         formatTableQueueSend(formatTable)
@@ -66,4 +91,8 @@ class FakeCalcRepository : CalcRepository {
     override suspend fun insertOrUpdatePad(pad: String) {
         padQueueSend(pad)
     }
+    override fun getEverythingTable(): Flow<List<EverythingTable>> {
+        return everythingTableFlow
+    }
+
 }

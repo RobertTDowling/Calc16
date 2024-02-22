@@ -34,49 +34,49 @@ class CalcViewModelStackTest {
     @Test
     fun pushConstant() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=3.14
         val K2=2.78
         viewModel.pushConstant(K1).join()
         viewModel.pushConstant(K2).join()
         // System.err.println(results)
-        assertEquals(CalcViewModel.StackState(listOf()), results.first())
-        assertEquals(CalcViewModel.StackState(listOf(K1)), results[1])
-        assertEquals(CalcViewModel.StackState(listOf(K2,K1)), results.last())
+        assertEquals(listOf<Double>(), results.first().stackState.stack)
+        assertEquals(listOf(K1), results[1].stackState.stack)
+        assertEquals(listOf(K2,K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun popToEmpty() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=99.9
         viewModel.pushConstant(K1).join()
         viewModel.pop1op({_ -> Unit }).join()
-        assertEquals(CalcViewModel.StackState(listOf()), results.last())
+        assertEquals(listOf<Double>(), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun popToPastEmpty() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=99.9
         viewModel.pushConstant(K1).join()
         viewModel.pop1op({_ -> Unit }).join()
         viewModel.pop1op({_ -> Unit }).join()
-        assertEquals(CalcViewModel.StackState(listOf()), results.last())
+        assertEquals(listOf<Double>(), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun pop3To2() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         val K2=22.0
         val K3=3.0
@@ -85,7 +85,7 @@ class CalcViewModelStackTest {
         viewModel.pushConstant(K3).join()
         viewModel.pop1op({_ -> Unit }).join()
         // System.err.println(results)
-        assertEquals(CalcViewModel.StackState(listOf(K2, K1)), results.last())
+        assertEquals(listOf(K2, K1), results.last().stackState.stack)
         job.cancel()
     }
 
@@ -93,37 +93,37 @@ class CalcViewModelStackTest {
     @Test
     fun swap1() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         val K2=22.0
         viewModel.pushConstant(K1).join()
         viewModel.pushConstant(K2).join()
         viewModel.swap().join()
-        assertEquals(CalcViewModel.StackState(listOf(K1, K2)), results.last())
+        assertEquals(listOf(K1, K2), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun swap2() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         val K2=22.0
         viewModel.pushConstant(K1).join()
         viewModel.pushConstant(K2).join()
         viewModel.swap().join()
         viewModel.swap().join()
-        assertEquals(CalcViewModel.StackState(listOf(K2, K1)), results.last())
+        assertEquals(listOf(K2, K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun swap3() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         val K2=22.0
         val K3=3.0
@@ -131,37 +131,37 @@ class CalcViewModelStackTest {
         viewModel.pushConstant(K2).join()
         viewModel.pushConstant(K3).join()
         viewModel.swap().join()
-        assertEquals(CalcViewModel.StackState(listOf(K2, K3, K1)), results.last())
+        assertEquals(listOf(K2, K3, K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun swap4neg() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         viewModel.pushConstant(K1).join()
         viewModel.swap().join()
-        assertEquals(CalcViewModel.StackState(listOf(K1)), results.last())
+        assertEquals(listOf(K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun swap5neg() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         viewModel.swap().join()
-        assertEquals(CalcViewModel.StackState(listOf()), results.last())
+        assertEquals(listOf<Double>(), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun pick1() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         val K2=22.0
         val K3=3.0
@@ -170,15 +170,15 @@ class CalcViewModelStackTest {
         viewModel.pushConstant(K3).join()
         viewModel.pick(1).join() // 22,3,22,111
         viewModel.pick(3).join() // 111,22,3,22,111
-        assertEquals(CalcViewModel.StackState(listOf(K1,K2,K3,K2,K1)), results.last())
+        assertEquals(listOf(K1,K2,K3,K2,K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun pick2neg() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         val K2=22.0
         val K3=3.0
@@ -186,57 +186,57 @@ class CalcViewModelStackTest {
         viewModel.pushConstant(K2).join()
         viewModel.pushConstant(K3).join()
         viewModel.pick(4).join() // Error, off end
-        assertEquals(CalcViewModel.StackState(listOf(K3,K2,K1)), results.last())
+        assertEquals(listOf(K3,K2,K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun pick3neg() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1=111.0
         viewModel.pushConstant(K1).join()
         viewModel.pick(-1).join() // Error, off beginning
-        assertEquals(CalcViewModel.StackState(listOf(K1)), results.last())
+        assertEquals(listOf(K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun unop1() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1 = 111.0
         val K2 = 22.0
         val op = { x: Double -> 2*x }
         viewModel.pushConstant(K1).join()
         viewModel.pushConstant(K2).join()
         viewModel.unop(op).join()
-        assertEquals(CalcViewModel.StackState(listOf(2*K2, K1)), results.last())
+        assertEquals(listOf(2*K2, K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun binop1() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1 = 111.0
         val K2 = 22.0
         val op = { x: Double, y: Double -> x-y }
         viewModel.pushConstant(K1).join()
         viewModel.pushConstant(K2).join()
         viewModel.binop(op).join()
-        assertEquals(CalcViewModel.StackState(listOf(K1-K2)), results.last())
+        assertEquals(listOf(K1-K2), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun rollback1() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1 = 111.0
         val K2 = 22.0
         val op = { x: Double, y: Double -> x/y }
@@ -246,15 +246,15 @@ class CalcViewModelStackTest {
         val res = viewModel.stackRollBack() // Undo the division, so should see K2, K1 again
         res?.join()
         assertNotEquals(null, res)
-        assertEquals(CalcViewModel.StackState(listOf(K2, K1)), results.last())
+        assertEquals(listOf(K2, K1), results.last().stackState.stack)
         job.cancel()
     }
 
     @Test
     fun rollback2neg() = runTest {
         val viewModel = CalcViewModel(FakeCalcRepository())
-        val results = mutableListOf<CalcViewModel.StackState>()
-        val job = launch(testDispatcher) { viewModel.stackState.toList(results) }
+        val results = mutableListOf<CalcViewModel.EverythingState>()
+        val job = launch(testDispatcher) { viewModel.everythingState.toList(results) }
         val K1 = 111.0
         viewModel.pushConstant(K1).join() // Push K1
         var res = viewModel.stackRollBack() // Undo the push
@@ -263,7 +263,8 @@ class CalcViewModelStackTest {
         res = viewModel.stackRollBack() // Undo again.... too far
         res?.join()
         assertEquals(null, res)
-        assertEquals(CalcViewModel.StackState(listOf()), results.last())
+        // System.err.println(results)
+        assertEquals(listOf<Double>(), results.last().stackState.stack)
         job.cancel()
     }
 }

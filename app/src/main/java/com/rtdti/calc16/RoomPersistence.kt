@@ -40,11 +40,23 @@ data class FormatTable(
     @ColumnInfo(name = "decimalPlaces") val decimalPlaces: Int,
     @ColumnInfo(name = "numberFormat") val numberFormat: String,
 )
+
+@Entity
+data class EverythingTable(
+    @ColumnInfo(name = "epoch") val epoch: Int,
+    @ColumnInfo(name = "depth") val depth: Int,
+    @ColumnInfo(name = "value") val value: Double,
+    @ColumnInfo(name = "pad") val pad: String,
+    @ColumnInfo(name = "epsilon") val epsilon: Double,
+    @ColumnInfo(name = "decimalPlaces") val decimalPlaces: Int,
+    @ColumnInfo(name = "numberFormat") val numberFormat: String,
+)
+
 @Dao
 interface CalcDao {
 
-    @Query("SELECT pad from PadTable")
-    fun getPad(): Flow<String>
+    @Query("SELECT StackTable.epoch, StackTable.depth, StackTable.value, PadTable.pad, FormatTable.epsilon, FormatTable.decimalPlaces, FormatTable.numberFormat FROM StackTable left JOIN PadTable left JOIN FormatTable")
+    fun getEverythingTable(): Flow<List<EverythingTable>>
 
     // @Update // Won't update unless table has a matching entry
     // suspend fun updatePad(padTable: PadTable)
@@ -55,31 +67,14 @@ interface CalcDao {
     // @Upsert // Appends, never updates
     // suspend fun updatePad(padTable: PadTable)
 
-    @Query("SELECT * from StackTable")
-    fun getStack() : Flow<List<StackTable>>
-
     @Insert
     suspend fun insertStack(stackTable: StackTable)
-
-    @Query("delete from StackTable")
-    suspend fun clearStack()
 
     @Query("DELETE FROM StackTable where epoch = :epoch")
     fun rollbackStack(epoch: Int)
 
-    @Query("SELECT * from FormatTable")
-    fun getFormatTable(): Flow<FormatTable>
-
     @Query("INSERT OR REPLACE INTO FormatTable (rowid, epsilon, decimalPlaces, numberFormat) values (:rowid, :epsilon, :decimalPlaces, :numberFormat)")
     suspend fun insertOrUpdateFormatTable(rowid: Int, epsilon: Double, decimalPlaces: Int, numberFormat: String)
-
-    @Transaction
-    suspend fun insertFullStackClearPad(listStackTable: List<StackTable>) {
-        insertOrUpdatePad(0,"")
-        for (st in listStackTable) {
-            insertStack(st)
-        }
-    }
 
     @Transaction
     suspend fun insertFullStack(listStackTable: List<StackTable>) {
@@ -106,6 +101,7 @@ abstract class CalcDatabase : RoomDatabase() {
                     .fallbackToDestructiveMigration()
                     //.addCallback(TimeLogDatabaseCallback(scope))
                     //.allowMainThreadQueries()
+                    .createFromAsset("empty_calc_database.db")
                     .build()
                 Instance = instance
                 // return instance
@@ -116,28 +112,20 @@ abstract class CalcDatabase : RoomDatabase() {
 }
 
 interface CalcRepository {
-    fun getPad(): Flow<String>
+    fun getEverythingTable(): Flow<List<EverythingTable>>
     suspend fun insertOrUpdatePad(pad: String)
-    fun getStack() : Flow<List<StackTable>>
-    suspend fun clearStack()
     suspend fun insertStack(stackTable: StackTable)
     fun rollbackStack(epoch: Int)
     suspend fun insertFullStack(lst: List<StackTable>)
-    suspend fun insertFullStackClearPad(lst: List<StackTable>)
-    fun getFormatTable(): Flow<FormatTable>
     suspend fun insertOrUpdateFormatTable(formatTable: FormatTable)
 }
 
 class OfflineCalcRepository(private val calcDao: CalcDao) : CalcRepository {
-    override fun getPad(): Flow<String> = calcDao.getPad()
-    override suspend fun insertOrUpdatePad(pad: String) = calcDao.insertOrUpdatePad(0, pad)
-    override fun getStack() = calcDao.getStack()
-    override suspend fun clearStack() = calcDao.clearStack()
+    override fun getEverythingTable(): Flow<List<EverythingTable>> = calcDao.getEverythingTable()
+    override suspend fun insertOrUpdatePad(pad: String) = calcDao.insertOrUpdatePad(1, pad)
     override suspend fun insertStack(stackTable: StackTable) = calcDao.insertStack(stackTable)
     override fun rollbackStack(epoch: Int) = calcDao.rollbackStack(epoch)
     override suspend fun insertFullStack(lst: List<StackTable>) = calcDao.insertFullStack(lst)
-    override suspend fun insertFullStackClearPad(lst: List<StackTable>) = calcDao.insertFullStackClearPad(lst)
-    override fun getFormatTable() = calcDao.getFormatTable()
     override suspend fun insertOrUpdateFormatTable(formatTable: FormatTable) =
         calcDao.insertOrUpdateFormatTable(formatTable.rowid, formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat)
 }
