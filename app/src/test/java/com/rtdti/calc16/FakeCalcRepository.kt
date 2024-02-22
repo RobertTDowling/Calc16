@@ -46,9 +46,6 @@ class FakeCalcRepository : CalcRepository {
     var padTable = String()
     var formatTable = FormatTable(0, 1e-4, 2, "FLOAT")
     val everythingTableFlow: Flow<List<EverythingTable>> = flow {
-        emit(listOf(EverythingTable(stackTableEmptyList.epoch,
-            stackTableEmptyList.depth, stackTableEmptyList.value, padTable,
-            formatTable.epsilon, formatTable.decimalPlaces, formatTable.numberFormat)))
         while (true) {
             val req = everythingQueue.receive()
             if (req.isPadChange) {
