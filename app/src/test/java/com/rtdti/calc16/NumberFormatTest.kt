@@ -35,7 +35,7 @@ class NumberFormatTest {
     @Test
     fun formatterImproper() {
         val format = NumberFormat.IMPROPER
-        val formatState = CalcViewModel.FormatState(1e-4, 2, format)
+        val formatState = CalcViewModel.FormatState(1e-5, 2, format)
         val formatter = Formatter(formatState, 0)
         assertEquals(AnnotatedString("0"), formatter.format(0.0))
         assertEquals(AnnotatedString("-1"), formatter.format(-1.0))
