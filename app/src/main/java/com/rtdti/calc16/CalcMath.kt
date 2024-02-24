@@ -22,11 +22,11 @@ data class Frac(val num: Long, val denom: Long, val err: Double) {
     fun near(other: Frac, epsilon: Double): Boolean {
         if (num != other.num) return false
         if (denom != other.denom) return false
-        return maxOf(err.absoluteValue, other.err.absoluteValue) <= epsilon
+        return maxOf(err.absoluteValue, other.err.absoluteValue) <= epsilon.absoluteValue
     }
 }
 object CalcMath {
-    fun mydouble2frac (startx: Double, epsilon: Double): Frac {
+    fun mydouble2frac (x: Double, epsilon: Double): Frac {
     /*
 Pi to 5 decimal places is 355/113. How did we find that? Continued Fractions.
 
@@ -161,17 +161,20 @@ initial values lets us define successive terms recursively:
       d₀ = 1
 
      */
+        val sign = if (x<0.0) -1L else 1L
+        val x = x.absoluteValue
+        val epsilon = epsilon.absoluteValue
         var n_1 = 1L
         var d_1 = 0L
-        var b0 = startx
+        var b0 = x
         var a0 = b0.toLong()
         var n0 = a0
         var d0 = 1L
 
-        var err = 0.0
+        var err: Double
         while (true) {
-            err = (startx - n0 / d0.toDouble())
-            if (err.absoluteValue < epsilon)
+            err = (x - n0 / d0.toDouble())
+            if (err.absoluteValue <= epsilon)
                 break
             val b1 = 1 / (b0 - a0)
             val a1 = b1.toLong()
@@ -184,7 +187,7 @@ initial values lets us define successive terms recursively:
             a0 = a1
             b0 = b1
         }
-        return Frac(n0, d0, err)
+        return Frac(sign * n0, d0, err)
     }
 
     fun double2frac (startx: Double, maxden: Double) : Frac {
