@@ -31,12 +31,12 @@ object CalcMath {
 Pi to 5 decimal places is 355/113. How did we find that? Continued Fractions.
 
 x = a₀ + 1
-    ------
-    a₁ + 1
         ------
-        a₂ + 1
+        a₁ + 1
             ------
-            a₃ + ...
+            a₂ + 1
+                ------
+                a₃ + ...
 
 Using our example x = pi,
 
@@ -49,12 +49,12 @@ etc.
 In other words
 
 pi = 3 + 1
-    ------
-     7 + 1
         ------
-        15 + 1
+         7 + 1
             ------
-            1 + ...
+            15 + 1
+                ------
+                1 + ...
 
 
 At any step along the way, we can truncate the continued fraction by
@@ -63,31 +63,31 @@ introducing an error term εᵢ:
 
 x = a₀ + ε₀, for i=0
 
-        1
+            1
 x = a₀ + -------, for i=1
-     a₁ + ε₁
+         a₁ + ε₁
 
 
-        1
+            1
 x = a₀ + ----------, for i=2
-             1
-     a₁ + -------
-          a₂ + ε₂
+                 1
+         a₁ + -------
+              a₂ + ε₂
 
 We can solve for the i'th error by noting in the sequence above:
 
 
-    1
+        1
 ε₀ = -------
- a₁ + ε₁
+     a₁ + ε₁
 
-    1
+        1
 ε₁ = -------
- a₂ + ε₂
+     a₂ + ε₂
 
-      1
+          1
 εᵢ = -----------
- aᵢ₊ᵢ + εᵢ₊ᵢ
+     aᵢ₊ᵢ + εᵢ₊ᵢ
 
 
 Setting εᵢ = 0, we can extract an approximate fraction for x:
@@ -95,31 +95,31 @@ Setting εᵢ = 0, we can extract an approximate fraction for x:
 
 For i=1,
 
-        1    |      a₀a₁ + 1     22   n₁=22
+            1    |      a₀a₁ + 1     22   n₁=22
 x = a₀ + ------- |   ≅  --------  =  --
-     a₁ + ε₁ |         a₁        7    d₁=7
-             | ε₁=0
+         a₁ + ε₁ |         a₁        7    d₁=7
+                 | ε₁=0
 
 
 for i=2,
 
-        1         |      a₀a₁a₂ + a₀ + a₂     333    n₂=333
+            1         |      a₀a₁a₂ + a₀ + a₂     333    n₂=333
 x = a₀ + -------      |   ≅  ----------------  =  ---
-     a₁ +  1      |          a₁a₂ + 1         106    d₂=106
-          ------- |
-          a₂ + ε₂ |
-                  | ε₂=0
+         a₁ +  1      |          a₁a₂ + 1         106    d₂=106
+              ------- |
+              a₂ + ε₂ |
+                      | ε₂=0
 
 for i=3
 
-        1               |      a₀a₁a₂a₃ + a₀a₁ + a₀a₃ + a₂a₃ + 1     355
+            1               |      a₀a₁a₂a₃ + a₀a₁ + a₀a₃ + a₂a₃ + 1     355
 x = a₀ + -------            |   ≅  ---------------------------------  =  ---
-     a₁ +  1            |              a₁a₂a₃ + a₁ + a₃              113
-          -------       |
-          a₂ +  1       |
-               -------  |             n₃=355, d₃=113
-               a₃ + ε₃  |
-                        | ε₃=0
+         a₁ +  1            |              a₁a₂a₃ + a₁ + a₃              113
+              -------       |
+              a₂ +  1       |
+                   -------  |             n₃=355, d₃=113
+                   a₃ + ε₃  |
+                            | ε₃=0
 
 
 Noted for each step i are the numerator (nᵢ) and denominator (dᵢ) of the
@@ -145,20 +145,20 @@ d₁ = d₀a₁ + d₋₁ = a₁          => d₋₁ = 0
 While having the -1'th approximation be 1/0 is nonsensical, having these
 initial values lets us define successive terms recursively:
 
-for i≥1
+   for i≥1
 
-  nᵢ = nᵢ₋₁ * aᵢ + nᵢ₋₂
-  dᵢ = dᵢ₋₁ * aᵢ + dᵢ₋₂
-  bᵢ = 1/(bᵢ₋₁ - aᵢ₋₁))
-  aᵢ = floor(bᵢ)
+      nᵢ = nᵢ₋₁ * aᵢ + nᵢ₋₂
+      dᵢ = dᵢ₋₁ * aᵢ + dᵢ₋₂
+      bᵢ = 1/(bᵢ₋₁ - aᵢ₋₁))
+      aᵢ = floor(bᵢ)
 
-Where
+   Where
 
-  n₋₁ = 1
-  d₋₁ = 0
-  b₀ = x
-  a₀ = n₀ = floor(b₀)
-  d₀ = 1
+      n₋₁ = 1
+      d₋₁ = 0
+      b₀ = x
+      a₀ = n₀ = floor(b₀)
+      d₀ = 1
 
      */
         var n_1 = 1L
