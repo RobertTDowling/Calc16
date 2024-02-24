@@ -26,7 +26,6 @@ data class Frac(val num: Long, val denom: Long, val err: Double) {
     }
 }
 object CalcMath {
-    fun mydouble2frac (x: Double, epsilon: Double): Frac {
     /*
 Pi to 5 decimal places is 355/113. How did we find that? Continued Fractions.
 
@@ -161,8 +160,13 @@ initial values lets us define successive terms recursively:
       d₀ = 1
 
      */
+    fun mydouble2frac (x: Double, epsilon: Double): Frac {
+        val failureFrac = Frac(0, 0, 0.0) // Return value for impossible or non-convergent results
         val sign = if (x<0.0) -1L else 1L
         val x = x.absoluteValue
+        if (x != 0.0 && (x > Long.MAX_VALUE || 1/x > Long.MAX_VALUE)) {
+            return failureFrac // Give up if num or denom would be too big
+        }
         val epsilon = epsilon.absoluteValue
         var n_1 = 1L
         var d_1 = 0L
@@ -189,15 +193,16 @@ initial values lets us define successive terms recursively:
             b0 = b1
             count--
         }
-        return if (count > 0) Frac(sign * n0, d0, err) else Frac(0,0, 0.0)
+        return if (count > 0) Frac(sign * n0, d0, err) else failureFrac
     }
 
+    /*
     fun double2frac (startx: Double, maxden: Double) : Frac {
         // Taken from float_to_frac.c
-        //** find rational approximation to given real number
-        //** David Eppstein / UC Irvine / 8 Aug 1993
-        //**
-        //** With corrections from Arno Formella, May 2008
+        // find rational approximation to given real number
+        // David Eppstein / UC Irvine / 8 Aug 1993
+        //
+        // With corrections from Arno Formella, May 2008
 
         var x = startx
 
@@ -248,7 +253,7 @@ initial values lets us define successive terms recursively:
             Frac(n2, d2, e2) // Pick e2
         }
     }
-
+    */
     fun gcd(a: Long, b: Long) : Long {
         if (a==0L) { return 1L }
         var aa=a.absoluteValue
