@@ -101,6 +101,8 @@ class CalcMathTest {
         assertTrue(Frac(4L, 1273239544735L, 0.0).near(CalcMath.mydouble2frac(Math.PI*1e-12, 1e-24), 1e-24))
         assertTrue(Frac(-333L, 106L, 0.0).near(CalcMath.mydouble2frac(-Math.PI, EPSILON), EPSILON))
         assertTrue(Frac(-355L, 113L, 0.0).near(CalcMath.mydouble2frac(-Math.PI, EPSILON/10), EPSILON/10))
+        assertTrue(Frac(0L, 0L, 0.0).near(CalcMath.mydouble2frac(Math.PI*1e24, 0.0), 1.0))
+        assertTrue(Frac(0L, 0L, 0.0).near(CalcMath.mydouble2frac(Math.PI*1e-24, 0.0), 1e-24))
     }
 
     @Test

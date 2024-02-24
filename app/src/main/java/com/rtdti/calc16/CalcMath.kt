@@ -171,8 +171,9 @@ initial values lets us define successive terms recursively:
         var n0 = a0
         var d0 = 1L
 
-        var err: Double
-        while (true) {
+        var err = 0.0
+        var count = 100
+        while (count > 0) {
             err = (x - n0 / d0.toDouble())
             if (err.absoluteValue <= epsilon)
                 break
@@ -186,8 +187,9 @@ initial values lets us define successive terms recursively:
             d0 = d1
             a0 = a1
             b0 = b1
+            count--
         }
-        return Frac(sign * n0, d0, err)
+        return if (count > 0) Frac(sign * n0, d0, err) else Frac(0,0, 0.0)
     }
 
     fun double2frac (startx: Double, maxden: Double) : Frac {
