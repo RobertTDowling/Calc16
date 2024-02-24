@@ -33,6 +33,61 @@ class CalcMathTest {
     }
 
     @Test
+    fun mydouble2frac() {
+        assertEquals(Frac(11L, 4L, 0.0), CalcMath.mydouble2frac(2.75, EPSILON))
+        assertEquals(Frac(0L, 1L, 0.0), CalcMath.mydouble2frac(0.0, EPSILON))
+        assertEquals(Frac(1L, 1L, 0.0), CalcMath.mydouble2frac(1.0, EPSILON))
+        assertEquals(Frac(-2L, 1L, 0.0), CalcMath.mydouble2frac(-2.0, EPSILON))
+        assertEquals(Frac(22L, 7L, 0.0), CalcMath.mydouble2frac(22/7.0, EPSILON))
+        assertTrue(Frac(22L, 7L, 0.0).near(CalcMath.mydouble2frac(22/7.0, EPSILON), EPSILON))
+        assertNotEquals(Frac(355L, 113L, 0.0), CalcMath.mydouble2frac(Math.PI, EPSILON))
+        assertTrue(Frac(355L, 113L, 0.0).near(CalcMath.mydouble2frac(Math.PI, EPSILON/10), EPSILON/10))
+        val MYEPSILON = 1e-8
+        assertTrue(Frac(3L, 1L, 0.141592654).near(CalcMath.mydouble2frac(Math.PI, 1e-0), 1e-0))
+        assertTrue(Frac(22L, 7L, 0.0013).near(CalcMath.mydouble2frac(Math.PI, 1e-2), 1e-2))
+        assertTrue(Frac(333L, 106L, 9e-5).near(CalcMath.mydouble2frac(Math.PI, 1e-4), 1e-4))
+        assertTrue(Frac(355L, 113L, 3e-7).near(CalcMath.mydouble2frac(Math.PI, 1e-6), 1e-6))
+        /*
+        System.err.println(CalcMath.mydouble2frac(Math.E, 0.8))
+        System.err.println(CalcMath.mydouble2frac(Math.E, 0.1))
+        System.err.println(CalcMath.mydouble2frac(Math.E, 0.01))
+        System.err.println(CalcMath.mydouble2frac(Math.E, 0.001))
+        System.err.println(CalcMath.mydouble2frac(Math.E, 1e-4))
+        System.err.println(CalcMath.mydouble2frac(Math.E, 1e-5))
+         */
+        assertTrue(Frac(2L, 1L, 0.7182818).near(CalcMath.mydouble2frac(Math.E, 1e-0), 1e-0))
+        assertTrue(Frac(8L, 3L, 6e-2).near(CalcMath.mydouble2frac(Math.E, 1e-1), 1e-1))
+        assertTrue(Frac(19L, 7L, 4e-3).near(CalcMath.mydouble2frac(Math.E, 1e-2), 1e-2))
+        assertTrue(Frac(87L, 32L, 5e-4).near(CalcMath.mydouble2frac(Math.E, 1e-3), 1e-3))
+        assertTrue(Frac(193L, 71L, 3e-5).near(CalcMath.mydouble2frac(Math.E, 1e-4), 1e-4))
+        assertTrue(Frac(1264L, 465L, 3e-6).near(CalcMath.mydouble2frac(Math.E, 1e-5), 1e-5))
+        assertTrue(Frac(2721L, 1001L, 2e-7).near(CalcMath.mydouble2frac(Math.E, 1e-6), 1e-6))
+        val PHI = (1+Math.sqrt(5.0))/2
+        /*
+        System.err.println(CalcMath.mydouble2frac(PHI, 1e-0))
+        System.err.println(CalcMath.mydouble2frac(PHI, 1e-1))
+        System.err.println(CalcMath.mydouble2frac(PHI, 1e-2))
+        System.err.println(CalcMath.mydouble2frac(PHI, 1e-3))
+        System.err.println(CalcMath.mydouble2frac(PHI, 1e-4))
+        System.err.println(CalcMath.mydouble2frac(PHI, 1e-5))
+        System.err.println(CalcMath.double2frac(PHI, 1/1e-0))
+        System.err.println(CalcMath.double2frac(PHI, 1/1e-1))
+        System.err.println(CalcMath.double2frac(PHI, 1/1e-2))
+        System.err.println(CalcMath.double2frac(PHI, 1/1e-3))
+        System.err.println(CalcMath.double2frac(PHI, 1/1e-4))
+        System.err.println(CalcMath.double2frac(PHI, 1/1e-5))
+         */
+        assertTrue(Frac(1L, 1L, 0.618033988).near(CalcMath.mydouble2frac(PHI, 1e-0), 1e-0))
+        assertTrue(Frac(5L, 3L, 5e-2).near(CalcMath.mydouble2frac(PHI, 1e-1), 1e-1))
+        assertTrue(Frac(13L, 8L, 7e-3).near(CalcMath.mydouble2frac(PHI, 1e-2), 1e-2))
+        assertTrue(Frac(55L, 34L, 4e-4).near(CalcMath.mydouble2frac(PHI, 1e-3), 1e-3))
+        assertTrue(Frac(144L, 89L, 6e-5).near(CalcMath.mydouble2frac(PHI, 1e-4), 1e-4))
+        assertTrue(Frac(377L, 233L, 9e-6).near(CalcMath.mydouble2frac(PHI, 1e-5), 1e-5))
+        assertTrue(Frac(1597L, 987L, 5e-7).near(CalcMath.mydouble2frac(PHI, 1e-6), 1e-6))
+    }
+
+
+    @Test
     fun double2frac() {
         val MAX_DEN = 1/EPSILON
         assertEquals(Frac(11L, 4L, 0.0), CalcMath.double2frac(2.75, MAX_DEN))
@@ -45,6 +100,7 @@ class CalcMathTest {
         assertTrue(Frac(355L, 113L, 0.0).near(CalcMath.double2frac(Math.PI, MAX_DEN), EPSILON))
         // assertTrue(Frac(22L, 7L, 0.0).near(CalcMath.double2frac(Math.PI, 0.001), 0.001))
         val E2 = 10.0
+        /*
         System.err.println(E2)
         System.err.println(CalcMath.double2frac(Math.PI, E2))
         val E3 = 100.0
@@ -53,6 +109,7 @@ class CalcMathTest {
         val E4 = 1000.0
         System.err.println(E4)
         System.err.println(CalcMath.double2frac(Math.PI, E4))
+         */
         assertFalse(Frac(22L, 7L, 0.0).near(CalcMath.double2frac(Math.PI, E2), EPSILON))
         assertTrue(Frac(22L, 7L, 0.0).near(CalcMath.double2frac(Math.PI, E2), 1/E2))
     }
