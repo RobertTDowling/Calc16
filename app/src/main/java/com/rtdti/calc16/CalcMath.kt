@@ -26,6 +26,167 @@ data class Frac(val num: Long, val denom: Long, val err: Double) {
     }
 }
 object CalcMath {
+    fun mydouble2frac (startx: Double, epsilon: Double): Frac {
+    /*
+Pi to 5 decimal places is 355/113. How did we find that? Continued Fractions.
+
+x = a₀ + 1
+        ------
+        a₁ + 1
+            ------
+            a₂ + 1
+                ------
+                a₃ + ...
+
+Using our example x = pi,
+
+Let a₀ = floor(x) = 3 (N.B. floor(x) is the largest integer less than x)
+Then a₁ = floor (1/(pi-a₀)) = floor(1/0.14159..) = floor (7.06151...) = 7
+Then a₂ = floor (1/(7.06151..-7)) = floor (15.99659..) = 15
+Then a₃ = floor (1/(15.99659..-15)) = floor (1.003417...) = 1
+etc.
+
+In other words
+
+pi = 3 + 1
+        ------
+         7 + 1
+            ------
+            15 + 1
+                ------
+                1 + ...
+
+
+At any step along the way, we can truncate the continued fraction by
+introducing an error term εᵢ:
+
+
+x = a₀ + ε₀, for i=0
+
+            1
+x = a₀ + -------, for i=1
+         a₁ + ε₁
+
+
+            1
+x = a₀ + ----------, for i=2
+                 1
+         a₁ + -------
+              a₂ + ε₂
+
+We can solve for the i'th error by noting in the sequence above:
+
+
+        1
+ε₀ = -------
+     a₁ + ε₁
+
+        1
+ε₁ = -------
+     a₂ + ε₂
+
+          1
+εᵢ = -----------
+     aᵢ₊ᵢ + εᵢ₊ᵢ
+
+
+Setting εᵢ = 0, we can extract an approximate fraction for x:
+
+
+For i=1,
+
+            1    |      a₀a₁ + 1     22   n₁=22
+x = a₀ + ------- |   ≅  --------  =  --
+         a₁ + ε₁ |         a₁        7    d₁=7
+                 | ε₁=0
+
+
+for i=2,
+
+            1         |      a₀a₁a₂ + a₀ + a₂     333    n₂=333
+x = a₀ + -------      |   ≅  ----------------  =  ---
+         a₁ +  1      |          a₁a₂ + 1         106    d₂=106
+              ------- |
+              a₂ + ε₂ |
+                      | ε₂=0
+
+for i=3
+
+            1               |      a₀a₁a₂a₃ + a₀a₁ + a₀a₃ + a₂a₃ + 1     355
+x = a₀ + -------            |   ≅  ---------------------------------  =  ---
+         a₁ +  1            |              a₁a₂a₃ + a₁ + a₃              113
+              -------       |
+              a₂ +  1       |
+                   -------  |             n₃=355, d₃=113
+                   a₃ + ε₃  |
+                            | ε₃=0
+
+
+Noted for each step i are the numerator (nᵢ) and denominator (dᵢ) of the
+approximate fraction for that step.
+
+Let n₀=3 and d₀=1, the first rational approximation 3/1, and n₁=22 and d₁=7 as
+noted above.
+
+By observation, we can see that
+
+n₂ = n₁a₂ + n₀
+d₂ = d₁a₂ + d₀
+
+n₃ = n₂a₃ + n₁
+d₃ = d₂a₃ + d₁
+
+We can "solve backwards" for n₋₁ and d₋₁:
+
+n₁ = n₀a₁ + n₋₁ = a₀a₁ + 1    => n₋₁ = 1
+
+d₁ = d₀a₁ + d₋₁ = a₁          => d₋₁ = 0
+
+While having the -1'th approximation be 1/0 is nonsensical, having these
+initial values lets us define successive terms recursively:
+
+   for i≥1
+
+      nᵢ = nᵢ₋₁ * aᵢ + nᵢ₋₂
+      dᵢ = dᵢ₋₁ * aᵢ + dᵢ₋₂
+      bᵢ = 1/(bᵢ₋₁ - aᵢ₋₁))
+      aᵢ = floor(bᵢ)
+
+   Where
+
+      n₋₁ = 1
+      d₋₁ = 0
+      b₀ = x
+      a₀ = n₀ = floor(b₀)
+      d₀ = 1
+
+     */
+        var n_1 = 1L
+        var d_1 = 0L
+        var b0 = startx
+        var a0 = b0.toLong()
+        var n0 = a0
+        var d0 = 1L
+
+        var err = 0.0
+        while (true) {
+            err = (startx - n0 / d0.toDouble())
+            if (err.absoluteValue < epsilon)
+                break
+            val b1 = 1 / (b0 - a0)
+            val a1 = b1.toLong()
+            val n1 = n0 * a1 + n_1
+            val d1 = d0 * a1 + d_1
+            n_1 = n0
+            n0 = n1
+            d_1 = d0
+            d0 = d1
+            a0 = a1
+            b0 = b1
+        }
+        return Frac(n0, d0, err)
+    }
+
     fun double2frac (startx: Double, maxden: Double) : Frac {
         // Taken from float_to_frac.c
         //** find rational approximation to given real number

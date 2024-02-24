@@ -52,7 +52,8 @@ class Formatter(val formatState: CalcViewModel.FormatState, val superscriptFontS
         return AnnotatedString(String.format("%s = 0x%x%s", CalcMath.floatString(value), truncated, eString))
     }
     private fun formatImproper(value: Double): AnnotatedString {
-        val f = CalcMath.double2frac(value, 1/formatState.epsilon)
+        // val f = CalcMath.double2frac(value, 1/formatState.epsilon)
+        val f = CalcMath.mydouble2frac(value, formatState.epsilon)
         return AnnotatedString(formatFrac(f, true))
     }
     private fun formatMixImperial(value: Double): AnnotatedString {
