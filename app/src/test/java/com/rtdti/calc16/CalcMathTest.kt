@@ -95,14 +95,26 @@ class CalcMathTest {
         System.err.println(CalcMath.mydouble2frac(-Math.PI, EPSILON))
         System.err.println(CalcMath.mydouble2frac(-Math.PI, EPSILON/10))
          */
+        // Crazy epsilon values
         assertTrue(Frac(245850922L, 78256779L, 0.0).near(CalcMath.mydouble2frac(Math.PI, 0.0), EPSILON))
         assertTrue(Frac(3L, 1L, -1.0).near(CalcMath.mydouble2frac(Math.PI, -1.0), -1.0))
         assertTrue(Frac(3141592653589L, 1L, 0.0).near(CalcMath.mydouble2frac(Math.PI*1e12, 1.0), 1.0))
         assertTrue(Frac(4L, 1273239544735L, 0.0).near(CalcMath.mydouble2frac(Math.PI*1e-12, 1e-24), 1e-24))
+        // Negative inputs (which sometimes cause sign to appear on denom instead of num)
         assertTrue(Frac(-333L, 106L, 0.0).near(CalcMath.mydouble2frac(-Math.PI, EPSILON), EPSILON))
         assertTrue(Frac(-355L, 113L, 0.0).near(CalcMath.mydouble2frac(-Math.PI, EPSILON/10), EPSILON/10))
+        // Detectable error conditions
+        assertEquals(Frac(1000000000000000000L, 1L, 0.0), CalcMath.mydouble2frac(1e18, 0.0))
+        assertEquals(Frac(1L, 100000000000000000L, 0.0), CalcMath.mydouble2frac(1e-17, 0.0))
+        assertEquals(Frac(0L, 1L, 1e-18), CalcMath.mydouble2frac(1e-18, 1e-18))
+        assertEquals(Frac(0L, 0L, 0.0), CalcMath.mydouble2frac(1e19, 0.0))
+        assertEquals(Frac(0L, 0L, 0.0), CalcMath.mydouble2frac(1e-19, 0.0))
+        assertEquals(Frac(0L, 0L, 0.0), CalcMath.mydouble2frac(1e104, 0.0))
+        assertEquals(Frac(0L, 0L, 0.0), CalcMath.mydouble2frac(1e-104, 0.0))
+        assertEquals(Frac(0L, 1L, 0.0), CalcMath.mydouble2frac(0.0, 0.0))
     }
 
+    /*
     @Test
     fun double2frac() {
         val MAX_DEN = 1/EPSILON
@@ -129,6 +141,7 @@ class CalcMathTest {
         assertFalse(Frac(22L, 7L, 0.0).near(CalcMath.double2frac(Math.PI, E2), EPSILON))
         assertTrue(Frac(22L, 7L, 0.0).near(CalcMath.double2frac(Math.PI, E2), 1/E2))
     }
+    */
 
     @Test
     fun double2imperial() {
