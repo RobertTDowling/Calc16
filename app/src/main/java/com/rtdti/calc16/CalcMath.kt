@@ -8,6 +8,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import java.text.DecimalFormat
 import kotlin.math.absoluteValue
+import kotlin.math.ceil
 import kotlin.math.roundToLong
 
 data class Frac(val num: Long, val denom: Long, val err: Double) {
@@ -406,29 +407,34 @@ initial values lets us define successive terms recursively:
     fun log2(value: Double): Double {
         return if (value >=0) Math.log(value)/Math.log(2.0) else Double.NEGATIVE_INFINITY
     }
-    fun signExtend(value: Double): Double {
-        val v = value.toLong()
-        var res = v
-        if (v and 0x7FFFFFFF80000000L == 0x80000000L) {
-            res = -1L - (v xor 0xffffffffL)
-        } else if (v and 0x7FFFFFFFFFFF8000L == 0x8000L) {
-            res = v or 0xFFFF0000L
-        } else if (v and 0x7FFFFFFFFFFFFF80L == 0x80L) {
-            res = v or 0xFF00L
+    fun ffo(v: Long): Int {
+        if (v<0L)
+            return 63
+        var mask = 1L.shl(62)
+        var i = 62
+        while (i>=0) {
+            if (v.and(mask) != 0L) {
+                return i
+            }
+            i--
+            mask=mask.shr(1)
         }
-        return res.toDouble()
+        return -1
+    }
+    fun signExtend(value: Double): Double {
+        //return if (value > 0) value - pow2(ceil(log2(value+1))) else value // Also works
+        return if (value > 0) value - pow2(1.0+ffo(value.toLong())) else value
     }
     fun signCrop(value: Double): Double {
-        val v = value.toLong()
-        var res = v
-        if (v and 0x7FFFFFFF00000000L != 0L) {
-            res = v and 0xFFFFFFFFL
-        } else if (v and 0x00000000FFFF0000L != 0L) {
-            res = v and 0xFFFFL
-        } else if (v and 0x000000000000FF00L != 0L) {
-            res = v and 0xFFL
+        if (value == 0.0)
+            return value
+        var v = value.toLong()
+        val b1 = ffo(v) // floor(log2(value)).toInt()
+        var b2 = b1 - 1
+        while (b2 >= 0 && v.shr(b2).and(1) == 1L) {
+            b2--
         }
-        return res.toDouble()
+        return v.and(1L.shl(b2 + 2) - 1).toDouble()
     }
     fun add(a: Double, b: Double): Double { return a+b }
     fun and(a: Double, b: Double): Double { return a.toLong().and(b.toLong()).toDouble() }

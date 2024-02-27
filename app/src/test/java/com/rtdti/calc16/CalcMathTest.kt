@@ -3,6 +3,7 @@ package com.rtdti.calc16
 import org.junit.Assert.*
 
 import org.junit.Test
+import kotlin.random.Random
 
 class CalcMathTest {
     val EPSILON = 1e-4
@@ -246,21 +247,109 @@ class CalcMathTest {
     }
     @Test
     fun signCrop() {
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(0x5.toDouble()), EPSILON)
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(0xd.toDouble()), EPSILON)
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(0x1d.toDouble()), EPSILON)
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(0xfd.toDouble()), EPSILON)
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(-0x3.toDouble()), EPSILON) // F...Fd
+
+        assertEquals(0x0.toDouble(), CalcMath.signCrop(0x0.toDouble()), EPSILON)
         assertEquals(0x1.toDouble(), CalcMath.signCrop(0x1.toDouble()), EPSILON)
-        assertEquals(0x34.toDouble(), CalcMath.signCrop(0x1234.toDouble()), EPSILON)
-        assertEquals(0x5678.toDouble(), CalcMath.signCrop(0x12345678.toDouble()), EPSILON)
-        assertEquals(0x9abcdef0.toDouble(), CalcMath.signCrop(0x3456789abcdef0.toDouble()), EPSILON)
-        assertEquals(0xffffffff.toDouble(), CalcMath.signCrop(-1.0), EPSILON)
-        assertEquals(0xfffffffe.toDouble(), CalcMath.signCrop(-2.0), EPSILON)
+        assertEquals(0x2.toDouble(), CalcMath.signCrop(0x2.toDouble()), EPSILON)
+        assertEquals(0x1.toDouble(), CalcMath.signCrop(0x3.toDouble()), EPSILON)
+        assertEquals(0x4.toDouble(), CalcMath.signCrop(0x4.toDouble()), EPSILON)
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(0x5.toDouble()), EPSILON)
+        assertEquals(0x2.toDouble(), CalcMath.signCrop(0x6.toDouble()), EPSILON)
+        assertEquals(0x1.toDouble(), CalcMath.signCrop(0x7.toDouble()), EPSILON)
+        assertEquals(0x8.toDouble(), CalcMath.signCrop(0x8.toDouble()), EPSILON)
+        assertEquals(0x9.toDouble(), CalcMath.signCrop(0x9.toDouble()), EPSILON)
+        assertEquals(0xa.toDouble(), CalcMath.signCrop(0xa.toDouble()), EPSILON)
+        assertEquals(0xb.toDouble(), CalcMath.signCrop(0xb.toDouble()), EPSILON)
+        assertEquals(0x4.toDouble(), CalcMath.signCrop(0xc.toDouble()), EPSILON)
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(0xd.toDouble()), EPSILON)
+        assertEquals(0x2.toDouble(), CalcMath.signCrop(0xe.toDouble()), EPSILON)
+        assertEquals(0x1.toDouble(), CalcMath.signCrop(0xf.toDouble()), EPSILON)
+        assertEquals(0x10.toDouble(), CalcMath.signCrop(0x10.toDouble()), EPSILON)
+        assertEquals(0x1234.toDouble(), CalcMath.signCrop(0x1234.toDouble()), EPSILON)
+        assertEquals(0x1456.toDouble(), CalcMath.signCrop(0x3456.toDouble()), EPSILON)
+        assertEquals(0xa56.toDouble(), CalcMath.signCrop(0x1a56.toDouble()), EPSILON)
+        //assertEquals(0x5678.toDouble(), CalcMath.signCrop(0x12345678.toDouble()), EPSILON)
+        //assertEquals(0x9abcdef0.toDouble(), CalcMath.signCrop(0x3456789abcdef0.toDouble()), EPSILON)
+        //assertEquals(0xffffffff.toDouble(), CalcMath.signCrop(-1.0), EPSILON)
+        //assertEquals(0xfffffffe.toDouble(), CalcMath.signCrop(-2.0), EPSILON)
+        assertEquals(0x1.toDouble(), CalcMath.signCrop(-0x1.toDouble()), EPSILON) // ff
+        assertEquals(0x2.toDouble(), CalcMath.signCrop(-0x2.toDouble()), EPSILON) // fe
+        assertEquals(0x5.toDouble(), CalcMath.signCrop(-0x3.toDouble()), EPSILON) // fd
+        assertEquals(0x4.toDouble(), CalcMath.signCrop(-0x4.toDouble()), EPSILON) // fc
+        assertEquals(0xb.toDouble(), CalcMath.signCrop(-0x5.toDouble()), EPSILON) // fb
+        assertEquals(0xa.toDouble(), CalcMath.signCrop(-0x6.toDouble()), EPSILON) // fa
+        assertEquals(0x9.toDouble(), CalcMath.signCrop(-0x7.toDouble()), EPSILON) // f9
+        assertEquals(0x8.toDouble(), CalcMath.signCrop(-0x8.toDouble()), EPSILON) // f8
+        assertEquals(0x17.toDouble(), CalcMath.signCrop(-0x9.toDouble()), EPSILON) // f7
+        assertEquals(0x16.toDouble(), CalcMath.signCrop(-0xa.toDouble()), EPSILON) // f6
+        assertEquals(0x15.toDouble(), CalcMath.signCrop(-0xb.toDouble()), EPSILON) // f5
+        assertEquals(0x14.toDouble(), CalcMath.signCrop(-0xc.toDouble()), EPSILON) // f4
+        assertEquals(0x13.toDouble(), CalcMath.signCrop(-0xd.toDouble()), EPSILON) // f3
+        assertEquals(0x12.toDouble(), CalcMath.signCrop(-0xe.toDouble()), EPSILON) // f2
+        assertEquals(0x11.toDouble(), CalcMath.signCrop(-0xf.toDouble()), EPSILON) // f1
+        assertEquals(0x10.toDouble(), CalcMath.signCrop(-0x10.toDouble()), EPSILON) // f0
     }
     @Test
     fun signExtend() {
-        assertEquals(0x1.toDouble(), CalcMath.signExtend(0x1.toDouble()), EPSILON)
-        assertEquals(0x76.toDouble(), CalcMath.signExtend(0x76.toDouble()), EPSILON)
-        assertEquals(0xff9a.toDouble(), CalcMath.signExtend(0x9a.toDouble()), EPSILON)
-        assertEquals(0x7654.toDouble(), CalcMath.signExtend(0x7654.toDouble()), EPSILON)
-        assertEquals(0xffff9abc.toDouble(), CalcMath.signExtend(0x9abc.toDouble()), EPSILON)
-        assertEquals(0x76543210.toDouble(), CalcMath.signExtend(0x76543210.toDouble()), EPSILON)
+        assertEquals(-0x3.toDouble(), CalcMath.signExtend(0x5.toDouble()), EPSILON)
+        assertEquals(-0x3.toDouble(), CalcMath.signExtend(0xd.toDouble()), EPSILON)
+        assertEquals(-0x3.toDouble(), CalcMath.signExtend(0x1d.toDouble()), EPSILON)
+        assertEquals(-0x3.toDouble(), CalcMath.signExtend(0xfd.toDouble()), EPSILON)
+        assertEquals(-0x3.toDouble(), CalcMath.signExtend(-0x3.toDouble()), EPSILON) // F...Fd
+
+        //assertEquals(0x1.toDouble(), CalcMath.signExtend(0x1.toDouble()), EPSILON)
+        //assertEquals(0x76.toDouble(), CalcMath.signExtend(0x76.toDouble()), EPSILON)
+        //assertEquals(0xff9a.toDouble(), CalcMath.signExtend(0x9a.toDouble()), EPSILON)
+        //assertEquals(0x7654.toDouble(), CalcMath.signExtend(0x7654.toDouble()), EPSILON)
+        //assertEquals(0xffff9abc.toDouble(), CalcMath.signExtend(0x9abc.toDouble()), EPSILON)
+        //assertEquals(0x76543210.toDouble(), CalcMath.signExtend(0x76543210.toDouble()), EPSILON)
+        assertEquals(-0x0.toDouble(), CalcMath.signExtend(0x0.toDouble()), EPSILON)
+        assertEquals(-0x1.toDouble(), CalcMath.signExtend(0x1.toDouble()), EPSILON)
+        assertEquals(-0x2.toDouble(), CalcMath.signExtend(0x2.toDouble()), EPSILON)
+        assertEquals(-0x1.toDouble(), CalcMath.signExtend(0x3.toDouble()), EPSILON)
+        assertEquals(-0x4.toDouble(), CalcMath.signExtend(0x4.toDouble()), EPSILON)
+        assertEquals(-0x8.toDouble(), CalcMath.signExtend(0x8.toDouble()), EPSILON)
+        assertEquals(-0x7.toDouble(), CalcMath.signExtend(0x9.toDouble()), EPSILON)
+        assertEquals(-0x6.toDouble(), CalcMath.signExtend(0xa.toDouble()), EPSILON)
+        assertEquals(-0x5.toDouble(), CalcMath.signExtend(0xb.toDouble()), EPSILON)
+        assertEquals(-0x4.toDouble(), CalcMath.signExtend(0xc.toDouble()), EPSILON)
+        assertEquals(-0xa.toDouble(), CalcMath.signExtend(0x76.toDouble()), EPSILON)
+        assertEquals(-0x66.toDouble(), CalcMath.signExtend(0x9a.toDouble()), EPSILON)
+        assertEquals(-0x09ac.toDouble(), CalcMath.signExtend(0x7654.toDouble()), EPSILON) // wow, I don't see this
+        assertEquals(-0x6544.toDouble(), CalcMath.signExtend(0x9abc.toDouble()), EPSILON)
+        assertEquals(-0x9abcdf0.toDouble(), CalcMath.signExtend(0x76543210.toDouble()), EPSILON)
         assertEquals(-(0x65432110.toDouble()), CalcMath.signExtend(0x9abcdef0.toDouble()), EPSILON)
+    }
+    @Test
+    fun log2() {
+        fun log2l(v: Long): Int { // Should be same as ffo
+            for (i in 63 downTo 0) {
+                if (v.and(1L.shl(i)) != 0L) {
+                    return i
+                }
+            }
+            return -1
+        }
+        for (i in 1L..1000000L) {
+            assertEquals(CalcMath.log2(i.toDouble()).toInt(), CalcMath.ffo(i))
+            assertEquals(log2l(i), CalcMath.ffo(i))
+        }
+        // Randori attack
+        val r = Random.Default
+        for (j in 0..1000000) {
+            val i = r.nextLong()
+            if (i <= 0L)
+                continue
+            assertEquals(CalcMath.log2(i.toDouble()).toInt(), CalcMath.ffo(i))
+            assertEquals(log2l(i), CalcMath.ffo(i))
+        }
+        val v2 = -3L // fff...fd
+        val v3 = CalcMath.ffo(v2)
+        assertEquals(63, v3)
     }
 }
