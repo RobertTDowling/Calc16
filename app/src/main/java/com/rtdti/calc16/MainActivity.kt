@@ -300,9 +300,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
         ) {
             fun noMoreUndos() { coroutineScope.launch { snackbarHostState.showSnackbar("No More Undos")} }
             KeyButton(text = "⤺", { viewModel.stackRollBack() ?: noMoreUndos() }, Keytype.CONTROL)
-            KeyButton(text = "ϵ→", CalcOps.EPS_FROM.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "→ϵ", CalcOps.TO_EPS.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "→.", CalcOps.TO_DP.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "h:m", CalcOps.HRMIN.doOp(viewModel), Keytype.BINOP)
             ModalKeyButton(text = "⏱", NumberFormat.TIME, viewModel)
             KeyButton(text = "◀", { viewModel.backspaceOrDrop() }, Keytype.CONTROL)
         }
@@ -324,9 +324,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "⎣x⎦", CalcOps.FLOOR.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "[x]", CalcOps.ROUND.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "⎡x⎤", CalcOps.CEIL.doOp(viewModel), Keytype.UNOP)
-            KeyButton(text = "gcd", CalcOps.GCD.doOp(viewModel), Keytype.BINOP)
             KeyButton(text = "←1", CalcOps.SIGN_EXTEND.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "0→", CalcOps.SIGN_CROP.doOp(viewModel), Keytype.UNOP)
+            KeyButton(text = "log₁₀", CalcOps.LOG10.doOp(viewModel), Keytype.UNOP, crowded = true)
         }
         Row(
             modifier = rowModifier,
@@ -335,9 +335,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = btop("sin","-1"), CalcOps.ASIN.doOp(viewModel), Keytype.TRIG, crowded = true)
             KeyButton(text = btop("cos","-1"), CalcOps.ACOS.doOp(viewModel), Keytype.TRIG, crowded = true)
             KeyButton(text = btop("tan","-1"), CalcOps.ATAN.doOp(viewModel), Keytype.TRIG, crowded = true)
-            KeyButton(text = btop("e","x"), CalcOps.EXP.doOp(viewModel), Keytype.TRIG)
-            KeyButton(text = btop("2","x"), CalcOps.POW2.doOp(viewModel), Keytype.TRIG)
             KeyButton(text = "r→⚬", CalcOps.RAD_TO_DEG.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = btop("e","x"), CalcOps.EXP.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "ln", CalcOps.LN.doOp(viewModel), Keytype.TRIG)
         }
         Row(
             modifier = rowModifier,
@@ -346,9 +346,9 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "sin", CalcOps.SIN.doOp(viewModel), Keytype.TRIG)
             KeyButton(text = "cos", CalcOps.COS.doOp(viewModel), Keytype.TRIG)
             KeyButton(text = "tan", CalcOps.TAN.doOp(viewModel), Keytype.TRIG)
-            KeyButton(text = "ln", CalcOps.LN.doOp(viewModel), Keytype.TRIG)
-            KeyButton(text = "log₂", CalcOps.LOG2.doOp(viewModel), Keytype.TRIG)
             KeyButton(text = "⚬→r", CalcOps.DEG_TO_RAD.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = btop("2","x"), CalcOps.POW2.doOp(viewModel), Keytype.TRIG)
+            KeyButton(text = "log₂", CalcOps.LOG2.doOp(viewModel), Keytype.TRIG)
         }
         Row(
             modifier = rowModifier,
@@ -380,8 +380,8 @@ fun KeyPad(viewModel: CalcViewModel, snackbarHostState: SnackbarHostState) {
             KeyButton(text = "8", { viewModel.padAppend("8") }, Keytype.ENTRY)
             KeyButton(text = "9", { viewModel.padAppend("9") }, Keytype.ENTRY)
             KeyButton(text = "÷", CalcOps.DIV.doOp(viewModel), Keytype.BINOP)
-            KeyButton(text = "1/x", CalcOps.INV.doOp(viewModel), Keytype.UNOP)
             KeyButton(text = "mod", CalcOps.MOD.doOp(viewModel), Keytype.BINOP, crowded = true)
+            KeyButton(text = "1/x", CalcOps.INV.doOp(viewModel), Keytype.UNOP)
         }
         Row(
             modifier = rowModifier,

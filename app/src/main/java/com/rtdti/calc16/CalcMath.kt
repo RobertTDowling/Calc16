@@ -443,6 +443,7 @@ initial values lets us define successive terms recursively:
     fun div(a: Double, b: Double): Double { return a/b }
     fun div2(a: Double): Double { return a/2 }
     fun inv(a: Double): Double { return 1/a }
+    fun hrmin(h: Double, m: Double): Double { return h+m/60.0 }
     fun mod(a: Double, b: Double): Double { return a%b }
     fun mul(a: Double, b: Double): Double { return a*b }
     fun not(a: Double): Double { return -1.0-a }
@@ -457,7 +458,7 @@ initial values lets us define successive terms recursively:
 
 enum class CalcOps {
     ACOS, ADD, AND, ASIN, ATAN, CEIL, CHS, COS, DEG_TO_RAD, DIV, DIV2,
-    DP_FROM, EE, EPS_FROM, EXP, FLOOR, GCD, INV, LCM, LN, LOG10, LOG2,
+    DP_FROM, EE, EPS_FROM, EXP, FLOOR, GCD, HRMIN, INV, LCM, LN, LOG10, LOG2,
     MOD, MUL, NOT, OR, PI, POW10, POW2, RAD_TO_DEG, ROUND, SIGN_CROP,
     SIGN_EXTEND, SIN, SQRT, SUB, TAN, TIMES2, TO_DP, TO_EPS, XOR, Y_POW_X;
     fun doOp(viewModel: CalcViewModel): () -> Unit {
@@ -479,6 +480,7 @@ enum class CalcOps {
             EXP -> fun() { viewModel.unop({ a -> Math.exp(a) }) }
             FLOOR -> fun() { viewModel.unop({ a -> Math.floor(a) }) }
             GCD -> fun() { viewModel.binop({ a, b -> CalcMath.gcd(a.toLong(),b.toLong()).toDouble() }) }
+            HRMIN -> fun() { viewModel.binop({ a, b -> CalcMath.hrmin(a,b) }) }
             INV -> fun() { viewModel.unop({ a -> CalcMath.inv(a) }) }
             LCM -> fun() { viewModel.binop({ a, b -> CalcMath.lcm(a.toLong(),b.toLong()).toDouble() }) }
             LN -> fun() { viewModel.unop({ a -> Math.log(a) }) }
