@@ -197,64 +197,6 @@ initial values lets us define successive terms recursively:
         return if (count > 0) Frac(sign * n0, d0, err) else failureFrac
     }
 
-    /*
-    fun double2frac (startx: Double, maxden: Double) : Frac {
-        // Taken from float_to_frac.c
-        // find rational approximation to given real number
-        // David Eppstein / UC Irvine / 8 Aug 1993
-        //
-        // With corrections from Arno Formella, May 2008
-
-        var x = startx
-
-        var m00 = 1L
-        var m11 = 1L
-        var m10 = 0L
-        var m01 = 0L
-
-        var loops = 0
-        var ai = x.toLong()
-
-        // loop finding terms until denom gets too big
-        while (m10 * ai + m11 <= maxden && loops < 100) {
-            loops++
-            val t1 = m00 * ai + m01
-            m01 = m00
-            m00 = t1
-            val t2 = m10 * ai + m11
-            m11 = m10
-            m10 = t2
-            if (x==ai.toDouble()) {
-                break     // AF: division by zero
-            }
-            x = 1/(x - ai.toDouble())
-            if (x>0x7FFFFFFF) {
-                break     // AF: representation failure
-            }
-            ai = x.toLong()
-        }
-        /* now remaining x is between 0 and 1/ai */
-        /* approx as either 0 or 1/m where m is max that will fit in maxden */
-        /* first try zero */
-        val n1 = m00
-        val d1 = m10
-        val e1 = startx - m00.toDouble() / m10
-        /* now try other possibility */
-        ai = ((maxden - m11) / m10).toLong()
-        m00 = m00 * ai + m01
-        m10 = m10 * ai + m11
-
-        val n2 = m00
-        val d2 = m10
-        val e2 = startx - m00.toDouble() / m10
-
-        return if (e1.absoluteValue < e2.absoluteValue) {
-            Frac(n1, d1, e1) // Pick e1
-        } else {
-            Frac(n2, d2, e2) // Pick e2
-        }
-    }
-    */
     fun gcd(a: Long, b: Long) : Long {
         if (a==0L) { return 1L }
         var aa=a.absoluteValue
